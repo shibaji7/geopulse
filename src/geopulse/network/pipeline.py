@@ -187,9 +187,7 @@ def pipe_to_soil_voltage_analytic(
     (3,)
     """
     gamma = np.sqrt(series_impedance_Ohm_per_m * shunt_admittance_S_per_m)
-    result = (
-        (E_Vm / gamma) * np.sinh(gamma * (x_m - length_m / 2)) / np.cosh(gamma * length_m / 2)
-    )
+    result = (E_Vm / gamma) * np.sinh(gamma * (x_m - length_m / 2)) / np.cosh(gamma * length_m / 2)
     return np.asarray(result, dtype=np.float64)
 
 

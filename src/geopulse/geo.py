@@ -67,9 +67,7 @@ def meridian_radius_m(lat_deg: float) -> float:
     of the ellipsoid along a meridian (north-south).
     """
     sin_phi = np.sin(lat_deg * DEG_TO_RAD)
-    return float(
-        WGS84_A_M * (1.0 - WGS84_E2) / (1.0 - WGS84_E2 * sin_phi * sin_phi) ** 1.5
-    )
+    return float(WGS84_A_M * (1.0 - WGS84_E2) / (1.0 - WGS84_E2 * sin_phi * sin_phi) ** 1.5)
 
 
 def prime_vertical_radius_m(lat_deg: float) -> float:
