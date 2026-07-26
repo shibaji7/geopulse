@@ -6,10 +6,14 @@
 
 *Unified engine for geomagnetically induced currents across grounded infrastructure.*
 
-[![CI](https://img.shields.io/badge/CI-pending-lightgrey.svg)](#)
-[![Coverage](https://img.shields.io/badge/coverage-pending-lightgrey.svg)](#)
-[![PyPI](https://img.shields.io/badge/PyPI-pending-lightgrey.svg)](#)
+[![CI](https://github.com/shibaji7/geopulse/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/shibaji7/geopulse/actions/workflows/ci.yml)
+[![Docs](https://readthedocs.org/projects/geopulse/badge/?version=latest)](https://geopulse.readthedocs.io/en/latest/)
+[![PyPI](https://img.shields.io/pypi/v/geopulse.svg)](https://pypi.org/project/geopulse/)
+[![Python versions](https://img.shields.io/pypi/pyversions/geopulse.svg)](https://pypi.org/project/geopulse/)
+[![codecov](https://codecov.io/gh/shibaji7/geopulse/branch/main/graph/badge.svg)](https://codecov.io/gh/shibaji7/geopulse)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 GeoPulse computes geomagnetically induced currents (GIC), induced voltages,
 and total harmonic distortion (THD) across grounded infrastructure —
