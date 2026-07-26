@@ -7,6 +7,7 @@ without any benchmark data files.
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from geopulse.solver.lpm import solve_lpm
 
@@ -59,6 +60,28 @@ def test_ungrounded_node_no_crash():
     # Both nodes have branch contribution → both active; must be finite.
     assert np.all(np.isfinite(V))
     assert np.all(np.isfinite(I))
+
+
+def test_solve_lpm_raises_on_bad_endpoint_shape():
+    from geopulse.exceptions import ShapeMismatchError
+    from geopulse.solver.lpm import solve_lpm
+
+    Y = np.eye(2)
+    Z = np.diag([10.0, 10.0])
+    Vth = np.array([1.0])
+    with pytest.raises(ShapeMismatchError, match="branch_endpoints"):
+        solve_lpm(Y, Z, Vth, np.array([[0, 1, 0]]), np.array([1.0]))  # 3-col endpoints
+
+
+def test_solve_lpm_raises_on_bad_conductance_shape():
+    from geopulse.exceptions import ShapeMismatchError
+    from geopulse.solver.lpm import solve_lpm
+
+    Y = np.eye(2)
+    Z = np.diag([10.0, 10.0])
+    Vth = np.array([1.0])
+    with pytest.raises(ShapeMismatchError, match="branch_conductances"):
+        solve_lpm(Y, Z, Vth, np.array([[0, 1]]), np.array([1.0, 2.0]))  # wrong length
 
 
 def test_solver_from_network_wires_metadata():

@@ -87,6 +87,36 @@ def test_missing_file_raises():
         SuperMAGSource("/tmp/no_such_supermag.csv").load()
 
 
+def test_unparseable_timestamp_raises(tmp_path):
+    body = dedent(
+        """\
+        Date_UTC,IAGA,GEOLAT,GEOLON,N,E,Z
+        NOT-A-TIMESTAMP,OTT,45.4,284.4,1.0,0.0,0.0
+        """
+    )
+    p = _write_csv(tmp_path / "bad_time.csv", body)
+    with pytest.raises(DataError, match="SuperMAG timestamp"):
+        SuperMAGSource(str(p)).load()
+
+
+def test_second_station_ignored_when_no_iaga_filter(tmp_path):
+    """First-station-wins behaviour: rows for a second station in the
+    same file are silently skipped when no `iaga=` is passed."""
+    body = dedent(
+        """\
+        Date_UTC,IAGA,GEOLAT,GEOLON,N,E,Z
+        2024-05-10T00:00:00,OTT,45.4,284.4,10.0,0.0,0.0
+        2024-05-10T00:01:00,BOU,40.1,254.8,999.0,0.0,0.0
+        2024-05-10T00:02:00,OTT,45.4,284.4,20.0,0.0,0.0
+        """
+    )
+    p = _write_csv(tmp_path / "sm_two.csv", body)
+    b = SuperMAGSource(str(p)).load()  # no iaga= filter
+    assert b.station_id == "OTT"
+    # BOU row must have been ignored, so we only see 2 samples.
+    assert b.bx_T.shape == (2,)
+
+
 def test_iso_and_space_separated_times(tmp_path):
     body = dedent(
         """\

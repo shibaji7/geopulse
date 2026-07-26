@@ -1,0 +1,56 @@
+# Auto-open PRs when dependencies or actions get new releases.
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+version: 2
+
+updates:
+  # 1. Python runtime + dev dependencies pinned in pyproject.toml.
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 5
+    labels: ["deps", "python"]
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      # Batch minor + patch bumps into one PR per group to reduce noise.
+      dev-tooling:
+        patterns:
+          - "ruff*"
+          - "mypy*"
+          - "pytest*"
+          - "pre-commit*"
+          - "sphinx*"
+          - "myst-parser"
+          - "build"
+          - "twine"
+        update-types:
+          - "minor"
+          - "patch"
+      scientific-python:
+        patterns:
+          - "numpy"
+          - "scipy"
+          - "matplotlib"
+          - "h5py"
+          - "pyyaml"
+          - "loguru"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # 2. GitHub Actions used in .github/workflows/*.yml.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["deps", "ci"]
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"

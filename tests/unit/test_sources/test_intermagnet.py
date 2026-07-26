@@ -109,3 +109,27 @@ def test_empty_window_raises(tmp_path):
 def test_bad_declination_unit_rejected():
     with pytest.raises(DataError, match="declination_unit"):
         INTERMAGNETSource("whatever.min", declination_unit="radians")
+
+
+def test_hezf_reporting_reconstructs_bx_from_h_and_e(tmp_path):
+    """HEZF: H (horizontal magnitude) and E (east component) are given;
+    Bx (north) is reconstructed as sqrt(H² − E²)."""
+    # H = 20000 nT, E = 12000 nT → expected Bx = sqrt(20000² − 12000²) = 16000.
+    body = "2024-05-10 00:00:00.000 131     20000.00  12000.00  55000.00  58200.00\n"
+    p = _write_iaga(tmp_path / "OTT_hezf.min", "HEZF", body)
+    b = INTERMAGNETSource(str(p)).load()
+    np.testing.assert_allclose(b.bx_T[0], 16000.0 * NT_TO_T, rtol=1e-6)
+    np.testing.assert_allclose(b.by_T[0], 12000.0 * NT_TO_T, rtol=1e-6)
+    np.testing.assert_allclose(b.bz_T[0], 55000.0 * NT_TO_T, rtol=1e-6)
+
+
+def test_dhzf_reporting_swaps_first_two_columns(tmp_path):
+    """DHZF puts D first, H second — must give same result as HDZF with
+    the same H, D values (columns already swapped in the file)."""
+    # DHZF row: D=-720, H=20000, Z=55000, F=58200 (D and H swapped vs HDZF)
+    body = "2024-05-10 00:00:00.000 131     -720.00   20000.00  55000.00  58200.00\n"
+    p = _write_iaga(tmp_path / "OTT_dhzf.min", "DHZF", body)
+    b = INTERMAGNETSource(str(p), declination_unit="minutes").load()
+    D_rad = np.radians(-12.0)
+    np.testing.assert_allclose(b.bx_T[0], 20000.0 * np.cos(D_rad) * NT_TO_T, rtol=1e-6)
+    np.testing.assert_allclose(b.by_T[0], 20000.0 * np.sin(D_rad) * NT_TO_T, rtol=1e-6)
