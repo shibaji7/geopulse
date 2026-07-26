@@ -1,14 +1,94 @@
+# Publish GeoPulse to PyPI (and TestPyPI on demand) via OIDC Trusted
+# Publishing — no long-lived API tokens stored anywhere.
+#
+# Triggers:
+#   - `git push origin v0.1.0` (or any v* tag) → build → publish to PyPI.
+#   - Manual "Run workflow" from the Actions tab → build → publish to
+#     TestPyPI. Use this to rehearse a release before tagging.
+#
+# One-time setup on PyPI (see CONTRIBUTING.md → Release Process):
+#   1. Create a project called `geopulse` on both PyPI and TestPyPI.
+#   2. Register a pending "Trusted Publisher":
+#        Owner:            shibaji7
+#        Repository name:  geopulse
+#        Workflow name:    release.yml
+#        Environment name: pypi        (production)
+#                          testpypi    (rehearsal)
+#   3. In the GitHub repo, create matching Environments named `pypi` and
+#      `testpypi` (Settings → Environments → New environment).
+
 name: Release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch: {}
+
 jobs:
-  build-and-publish:
+  # --- 1. Build wheel + sdist once, reuse in both publish jobs -----------
+  build:
+    name: Build wheel + sdist
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # setuptools-scm would need history if enabled
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
-      - run: pip install build twine
-      - run: python -m build
-      - run: twine check dist/*
+      - name: Install build backend
+        run: pip install --upgrade build twine
+      - name: Build sdist + wheel
+        run: python -m build
+      - name: Verify metadata
+        run: twine check dist/*
+      - name: Upload dist as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  # --- 2. Publish to TestPyPI (rehearsal) --------------------------------
+  # Fires on manual workflow_dispatch. Safe to re-run; skip-existing means
+  # already-uploaded files don't error out.
+  publish-testpypi:
+    name: Publish to TestPyPI
+    needs: build
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/geopulse
+    permissions:
+      id-token: write   # required for OIDC exchange
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
+
+  # --- 3. Publish to real PyPI (production) ------------------------------
+  # Fires only on tag pushes matching v*.
+  publish-pypi:
+    name: Publish to PyPI
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/geopulse
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
