@@ -14,3 +14,12 @@ repos:
       - id: check-toml
       - id: check-added-large-files
         args: [--maxkb=500]
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        # Match the CI invocation: mypy src/geopulse/ --ignore-missing-imports.
+        # files=/args scope the run to src/ only so tests (which are noisier)
+        # don't gate every commit.
+        files: ^src/geopulse/
+        args: [--ignore-missing-imports]
