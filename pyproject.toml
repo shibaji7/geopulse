@@ -92,11 +92,13 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/shibaji7/geopulse"
+Homepage      = "https://github.com/shibaji7/geopulse"
 Documentation = "https://geopulse.readthedocs.io"
-Repository = "https://github.com/shibaji7/geopulse"
-Issues = "https://github.com/shibaji7/geopulse/issues"
-Changelog = "https://github.com/shibaji7/geopulse/blob/main/CHANGELOG.md"
+"Source Code" = "https://github.com/shibaji7/geopulse"
+"PyPI"        = "https://pypi.org/project/geopulse/"
+Issues        = "https://github.com/shibaji7/geopulse/issues"
+Changelog     = "https://github.com/shibaji7/geopulse/blob/main/CHANGELOG.md"
+Releases      = "https://github.com/shibaji7/geopulse/releases"
 
 [project.scripts]
 geopulse = "geopulse.cli:main"

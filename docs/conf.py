@@ -92,6 +92,23 @@ html_theme_options = {
     "sticky_navigation": True,
 }
 
+# Fills the "Edit on GitHub" link + the "View" dropdown at the top of the
+# left sidebar in the sphinx_rtd_theme.
+html_context = {
+    "display_github": True,
+    "github_user": "shibaji7",
+    "github_repo": "geopulse",
+    "github_version": "main",
+    "conf_py_path": "/docs/",
+    # Extra project-level links surfaced in the footer (rendered by
+    # sphinx_rtd_theme when present).
+    "project_links": [
+        ("GitHub", "https://github.com/shibaji7/geopulse"),
+        ("PyPI", "https://pypi.org/project/geopulse/"),
+        ("Issues", "https://github.com/shibaji7/geopulse/issues"),
+    ],
+}
+
 # Silence RTD-theme quirk: it warns on missing custom.css if _static empty.
 if not (Path(__file__).parent / "_static").exists():
     (Path(__file__).parent / "_static").mkdir(exist_ok=True)

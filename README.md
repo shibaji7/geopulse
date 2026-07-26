@@ -15,6 +15,8 @@
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
+**[📖 Documentation](https://geopulse.readthedocs.io/) · [📦 PyPI](https://pypi.org/project/geopulse/) · [🐙 GitHub](https://github.com/shibaji7/geopulse) · [🐛 Issues](https://github.com/shibaji7/geopulse/issues) · [📜 Changelog](CHANGELOG.md)**
+
 GeoPulse computes geomagnetically induced currents (GIC), induced voltages,
 and total harmonic distortion (THD) across grounded infrastructure —
 submarine cables, power grids, oil/gas pipelines, and electrified railways —

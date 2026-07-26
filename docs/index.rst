@@ -8,6 +8,39 @@ GeoPulse
 
 |
 
+.. |ci|      image:: https://github.com/shibaji7/geopulse/actions/workflows/ci.yml/badge.svg?branch=main
+   :target: https://github.com/shibaji7/geopulse/actions/workflows/ci.yml
+   :alt: CI
+.. |docs|    image:: https://readthedocs.org/projects/geopulse/badge/?version=latest
+   :target: https://geopulse.readthedocs.io/en/latest/
+   :alt: Docs
+.. |pypi|    image:: https://img.shields.io/pypi/v/geopulse.svg
+   :target: https://pypi.org/project/geopulse/
+   :alt: PyPI
+.. |pyver|   image:: https://img.shields.io/pypi/pyversions/geopulse.svg
+   :target: https://pypi.org/project/geopulse/
+   :alt: Python versions
+.. |cov|     image:: https://codecov.io/gh/shibaji7/geopulse/branch/main/graph/badge.svg
+   :target: https://codecov.io/gh/shibaji7/geopulse
+   :alt: Coverage
+.. |license| image:: https://img.shields.io/badge/license-Apache--2.0-blue.svg
+   :target: https://github.com/shibaji7/geopulse/blob/main/LICENSE
+   :alt: License
+.. |precom|  image:: https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit
+   :target: https://github.com/pre-commit/pre-commit
+   :alt: pre-commit
+.. |ruff|    image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json
+   :target: https://github.com/astral-sh/ruff
+   :alt: Ruff
+
+|ci| |docs| |pypi| |pyver| |cov| |license| |precom| |ruff|
+
+`GitHub <https://github.com/shibaji7/geopulse>`__ ·
+`PyPI <https://pypi.org/project/geopulse/>`__ ·
+`Issues <https://github.com/shibaji7/geopulse/issues>`__ ·
+`Releases <https://github.com/shibaji7/geopulse/releases>`__ ·
+`Changelog <https://github.com/shibaji7/geopulse/blob/main/CHANGELOG.md>`__
+
 **Unified engine for geomagnetically induced currents (GIC), induced
 voltages, and total harmonic distortion across grounded infrastructure —
 submarine cables, power grids, oil/gas pipelines, and electrified
