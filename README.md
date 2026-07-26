@@ -26,7 +26,7 @@ implementation that ships alongside peer-reviewed papers.
    SOURCES         EARTH           E-FIELD         NETWORK          SOLVER          DEVICES         METRICS
   ┌────────┐    ┌────────┐      ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
   │SuperMAG│    │ 1-D    │      │Plane-wave│    │Cables    │    │LPM       │    │Transform.│    │GIC / THD │
-  │INTERMAG│──▶│ Layered│  ──▶ │Convolut. │──▶│Power grid│──▶│MNA       │──▶│CP units  │──▶│Hotspot   │
+  │INTERMAG│──▶│ Layered│  ──▶ │Convolut. │──▶│Power grid│──▶ │MNA       │──▶│CP units  │──▶│Hotspot   │
   │SWMF MHD│    │ 2-D    │      │Coastal   │    │Pipelines │    │PySpice   │    │Rectifier │    │Exceedance│
   │Synth.  │    │ 3-D    │      │Non-unif. │    │Railways  │    │          │    │          │    │          │
   └────────┘    └────────┘      └──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘
