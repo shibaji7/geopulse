@@ -82,3 +82,7 @@ geopulse_architecture.pptx
 # === Third-party copyrighted material — keep local only ===
 # The Horton (2012) paper PDF is IEEE-copyrighted; do not redistribute.
 benchmarks/horton2012/*.pdf
+
+# === Private drafts (email, notes) — never commit to the public repo ===
+scratchpad_*.md
+scratchpad_*.txt

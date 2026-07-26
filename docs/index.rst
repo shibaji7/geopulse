@@ -90,9 +90,9 @@ Citation
 
 If you use GeoPulse in your research, please cite:
 
-    Chakraborty, S. & Boteler, D. (in preparation). *GeoPulse: A unified
-    engine for geomagnetically induced currents across grounded
-    infrastructure*.
+    Chakraborty, S., Shi, X., Hartinger, M., Boteler, D., et al.
+    (in preparation). *GeoPulse: A unified engine for geomagnetically
+    induced currents across grounded infrastructure*.
 
 The engine is Apache-2.0 licensed. The explicit patent grant is
 deliberate — GeoPulse is intended for use by industry partners as well as

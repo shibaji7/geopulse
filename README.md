@@ -116,8 +116,9 @@ conventions, PR checklist, and coding standards.
 ## Citation
 
 If you use GeoPulse in your research, please cite:
-*Chakraborty, S. & Boteler, D. (in preparation). GeoPulse: A unified engine
-for geomagnetically induced currents across grounded infrastructure.*
+*Chakraborty, S., Shi, X., Hartinger, M., Boteler, D., et al. (in preparation).
+GeoPulse: A unified engine for geomagnetically induced currents across
+grounded infrastructure.*
 
 ## License
 
