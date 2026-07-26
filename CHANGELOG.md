@@ -5,6 +5,18 @@ All notable changes to GeoPulse will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0a2] - 2026-07-26
+
+Metadata-only release. Publishes updated package authorship to PyPI.
+
+### Changed
+- `pyproject.toml` `authors` list now includes Xueling Shi and
+  Michael Hartinger alongside Shibaji Chakraborty and David Boteler.
+  The prose citation string in README.md and the docs landing page
+  had already been updated to the same list in `7c84841`; this bump
+  is what lands the change on PyPI package metadata (which is
+  per-version immutable).
+
 ## [0.1.0a1] - 2026-07-26
 
 Infrastructure release — no user-facing API changes. First release
