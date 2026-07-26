@@ -77,6 +77,8 @@ dev = [
     "myst-parser>=2.0",
     "nbsphinx>=0.9",
     "towncrier>=23.6",
+    "build>=1.0",
+    "twine>=5.0",
 ]
 docs = [
     # Standalone extra so Read the Docs can install only what the build needs.

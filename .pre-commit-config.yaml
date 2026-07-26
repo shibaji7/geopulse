@@ -1,3 +1,7 @@
+# Default stage for hooks that don't set one explicitly. Keeps historical
+# behaviour (fast lint/format/type checks on every commit).
+default_stages: [pre-commit]
+
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Pinned to match the dev env (local ruff is 0.16.0). Bump both together
@@ -21,7 +25,43 @@ repos:
     hooks:
       - id: mypy
         # Match the CI invocation: mypy src/geopulse/ --ignore-missing-imports.
-        # files=/args scope the run to src/ only so tests (which are noisier)
-        # don't gate every commit.
+        # Scoped to src/ only so noisier test code doesn't gate every commit.
         files: ^src/geopulse/
         args: [--ignore-missing-imports]
+
+  # ----- Local hooks (project-specific shell commands) --------------------
+  - repo: local
+    hooks:
+      # 1. Cleanup: strip build artefacts before every commit. All already
+      # gitignored so this only affects the working tree — keeps `ls` and
+      # `git status` clean without changing any tracked file.
+      - id: clean-build-artefacts
+        name: clean build artefacts (dist/, build/, egg-info, docs/_build/)
+        entry: bash -c 'rm -rf dist build docs/_build docs/api/_autosummary *.egg-info src/*.egg-info .pytest_cache .mypy_cache'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      # 2. Wheel + sdist smoke check: verify `python -m build` still succeeds.
+      # Runs only on `git push` so day-to-day commits stay fast. Catches
+      # packaging breakage (missing MANIFEST files, bad pyproject changes)
+      # BEFORE it hits CI or PyPI.
+      - id: build-wheel-check
+        name: build wheel + sdist (smoke check)
+        entry: bash -c 'python -m build --outdir /tmp/gp_prepush_dist > /tmp/gp_prepush_build.log 2>&1 && rm -rf /tmp/gp_prepush_dist'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      # 3. Sphinx docs smoke check: verify the site still builds. Runs only
+      # on push. Doesn't use -W (RTD tolerates warnings and so should we);
+      # a real BUILD failure still fails this hook.
+      - id: build-docs-check
+        name: sphinx-build docs (smoke check)
+        entry: bash -c 'sphinx-build -b html -q docs /tmp/gp_prepush_docs > /tmp/gp_prepush_docs.log 2>&1 && rm -rf /tmp/gp_prepush_docs'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
