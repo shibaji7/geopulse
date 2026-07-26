@@ -84,5 +84,4 @@ geopulse_architecture.pptx
 benchmarks/horton2012/*.pdf
 
 # === Private drafts (email, notes) — never commit to the public repo ===
-scratchpad_*.md
-scratchpad_*.txt
+private/*.*
