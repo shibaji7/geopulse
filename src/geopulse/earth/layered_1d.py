@@ -32,7 +32,7 @@ import numpy as np
 
 from geopulse.constants import MU_0
 from geopulse.earth.base import ConductivityLayer, EarthModel
-from geopulse.earth.impedance import Impedance, ScalarImpedance
+from geopulse.earth.impedance import ScalarImpedance
 from geopulse.exceptions import DataError
 
 __all__ = ["Layered1D"]
@@ -78,7 +78,7 @@ class Layered1D(EarthModel):
         """Return ``1``."""
         return 1
 
-    def compute_impedance(self, freqs_Hz: np.ndarray) -> Impedance:
+    def compute_impedance(self, freqs_Hz: np.ndarray) -> ScalarImpedance:
         """Compute the surface impedance via Wait recursion.
 
         Parameters

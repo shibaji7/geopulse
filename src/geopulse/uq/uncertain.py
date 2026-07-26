@@ -118,14 +118,17 @@ class Uncertain(Generic[T]):
             return [self.nominal] * n
         if self.distribution == "gaussian":
             std = self.params.get("std", 0.0)
-            shape = np.shape(self.nominal)
-            return [self.nominal + rng.normal(0.0, std, size=shape) for _ in range(n)]
+            shape = np.shape(self.nominal)  # type: ignore[arg-type]  # T is unbounded
+            return [
+                self.nominal + rng.normal(0.0, std, size=shape)  # type: ignore[operator]
+                for _ in range(n)
+            ]
         if self.distribution == "uniform":
             low = self.params.get("low")
             high = self.params.get("high")
             if low is None or high is None:
                 raise ValueError("uniform distribution requires 'low' and 'high'")
-            shape = np.shape(self.nominal)
+            shape = np.shape(self.nominal)  # type: ignore[arg-type]  # T is unbounded
             return [rng.uniform(low, high, size=shape) for _ in range(n)]
         if self.distribution == "ensemble":
             if self.samples is None:
