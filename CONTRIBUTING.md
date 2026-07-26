@@ -35,8 +35,9 @@ Types: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `perf`, `build`, `ci`
 Before opening a PR:
 
 - [ ] Branch is up-to-date with `develop`.
-- [ ] `ruff check src/ tests/` passes with zero errors.
-- [ ] `ruff format --check src/ tests/` passes.
+- [ ] `pre-commit run --all-files` passes (this covers ruff lint,
+      ruff-format, mypy, and file-hygiene hooks — see
+      [Local Environment Setup](#local-environment-setup)).
 - [ ] `pytest tests/ -m "not slow and not benchmark"` passes.
 - [ ] New public functions/classes have NumPy-style docstrings.
 - [ ] New physics has an analytic or golden-file test.
@@ -45,6 +46,39 @@ Before opening a PR:
 
 Every PR requires at least one approving review. Benchmark PRs (anything
 touching `tests/benchmarks/` or a claim of published tolerance) require two.
+
+## Local Environment Setup
+
+One-time. Assumes conda is installed.
+
+```bash
+git clone https://github.com/shibaji7/geopulse.git
+cd geopulse
+conda env create -f environment.yml       # creates geopulse-dev
+conda activate geopulse-dev
+pre-commit install                        # wires .git/hooks/pre-commit
+pre-commit run --all-files                # warm caches, verify everything green
+```
+
+After this, every `git commit` runs the `.pre-commit-config.yaml` gates:
+
+| Hook | Catches |
+|---|---|
+| `ruff` (with `--fix`) | Lint issues (auto-fixes many) |
+| `ruff-format` | Formatting differences |
+| `trailing-whitespace` | Stray trailing spaces |
+| `end-of-file-fixer` | Missing terminal newline |
+| `check-yaml` / `check-toml` | Config-file syntax errors |
+| `check-added-large-files` | Accidental commits > 500 KB |
+| `mypy` (on `src/geopulse/`) | Type errors |
+
+If a hook fails, fix the issue (or accept the auto-fix), `git add`, and
+re-`git commit`. Bypass in emergencies with `git commit --no-verify` —
+but a red hook is usually the hook doing its job.
+
+Keep `geopulse-dev` active whenever you commit; the hook script needs the
+env's `pre-commit` on `PATH`. Refresh pinned hook versions occasionally
+with `pre-commit autoupdate` (produces one PR bumping the pins).
 
 ## Coding Standards Summary
 
