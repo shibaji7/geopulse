@@ -6,14 +6,29 @@ reproducibility come before speed of feature delivery.
 
 ## Branch Strategy
 
+**Current model (v0.1.x, alpha) — GitHub flow:**
+
 ```
-main        ← always releasable, protected, tagged versions
-develop     ← integration branch, nightly CI
-feature/*   ← short-lived, squash-merge into develop
-release/*   ← stabilization branches, cherry-pick fixes only
+main        ← the one branch; always releasable, protected, tagged versions
+feature/*   ← short-lived, squash-merge into main via PR
 ```
 
-Branch names: `feature/<module>/<short-desc>`, e.g. `feature/earth/wait-recursion`.
+Branch names: `feature/<module>/<short-desc>`, e.g.
+`feature/earth/wait-recursion`. Every merge to `main` goes through a PR
+with CI green; releases are cut by tagging `main` (`v0.1.0a0`,
+`v0.1.0`, `v0.2.0`, …).
+
+**Planned model (v0.5+, community beta) — gitflow:**
+
+Adopt `develop` and `release/*` branches once one of the following
+becomes true: (a) three or more concurrent contributors with
+in-flight work that regularly conflicts, (b) staged release trains
+(nightly RTD against `develop`, stable RTD against `main`), or
+(c) support for multiple concurrent versions in production (backports
+to old release lines).
+
+Until then, `develop` and `release/*` would add three-way merge
+overhead without buying anything.
 
 ## Commit Conventions
 
@@ -34,7 +49,7 @@ Types: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `perf`, `build`, `ci`
 
 Before opening a PR:
 
-- [ ] Branch is up-to-date with `develop`.
+- [ ] Branch is up-to-date with `main` (rebase, not merge).
 - [ ] `pre-commit run --all-files` passes (this covers ruff lint,
       ruff-format, mypy, and file-hygiene hooks — see
       [Local Environment Setup](#local-environment-setup)).
@@ -112,5 +127,15 @@ Every physics function needs an analytic or reference-implementation validation
 
 ## Release Process
 
-Releases are cut from `release/vX.Y` branches. See Section 19 of the handoff
-spec for the full procedure.
+Under the current model, releases are cut directly from `main`:
+
+1. Bump `_version.py` and `pyproject.toml` in a single PR.
+2. Add a `[X.Y.Z] - YYYY-MM-DD` entry at the top of `CHANGELOG.md`.
+3. Merge to `main`.
+4. Tag: `git tag -a vX.Y.Z -m "..."` then `git push origin --tags`.
+5. Promote to a GitHub Release: `gh release create vX.Y.Z --notes-from-tag`
+   (add `--prerelease` for alphas/betas/RCs).
+
+Once the project adopts gitflow (see [Branch Strategy](#branch-strategy)),
+this will switch to `release/vX.Y` stabilisation branches with
+cherry-picked fixes.
