@@ -5,6 +5,47 @@ All notable changes to GeoPulse will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0a1] - 2026-07-26
+
+Infrastructure release — no user-facing API changes. First release
+published to real PyPI via OIDC Trusted Publishing.
+
+### Added
+- **Docs site** at https://geopulse.readthedocs.io/ — 107-page Sphinx
+  build (landing + getting-started walkthrough + 54 auto-generated API
+  pages). `.readthedocs.yaml` + full `docs/conf.py` with autosummary,
+  myst-parser, intersphinx to numpy/scipy/h5py/matplotlib.
+- **OIDC Trusted Publishing workflow**: `.github/workflows/release.yml`
+  builds sdist+wheel on every `v*` tag push and publishes to PyPI
+  without long-lived API tokens. Manual `workflow_dispatch` publishes
+  to TestPyPI for rehearsal.
+- **Pre-commit gate**: 8-hook pipeline (ruff lint + format, whitespace,
+  EOF, YAML/TOML, large-file guard, mypy) + a `pre-commit` stage cleanup
+  hook and two `pre-push` smoke checks (wheel build, Sphinx docs build).
+- `[docs]` optional dependency group so RTD installs only what the build
+  needs; `build` and `twine` added to `[dev]`.
+
+### Changed
+- CONTRIBUTING.md now documents GitHub flow (`main` + `feature/*`) as
+  the current branch strategy, with gitflow described as the planned
+  model once contributor count justifies it. PR checklist points to
+  `pre-commit run --all-files` instead of enumerating ruff commands.
+- WGS84 curvature-radius helpers now `float(...)`-cast their returns to
+  satisfy strict mypy.
+- `Layered1D.compute_impedance` return type narrowed from `Impedance`
+  to `ScalarImpedance` (covariant return; unblocks `.Z_values` access
+  in `CoastalCorrection2D`).
+
+### Fixed
+- 9 mypy errors flagged by CI (and newer numpy type stubs): missing
+  `float()` casts in `geo.py`, wide return type in `layered_1d.py`,
+  unbounded-TypeVar `# type: ignore` annotations in `uq/uncertain.py`,
+  `np.ndarray` cast in `pipeline.py`, `import-untyped` on yaml.
+- 12 empty `__init__.py` / `.gitkeep` files were missing terminal
+  newlines (fixed by the new `end-of-file-fixer` pre-commit hook).
+- `ruff-pre-commit` pin bumped from `v0.4.0` to `v0.16.0` to match the
+  local dev env; the old pin didn't recognise `UP045` in `ruff.toml`.
+
 ## [0.1.0a0] - 2026-07-25
 
 First alpha release. Base engine is pip-installable, imports cleanly in a
