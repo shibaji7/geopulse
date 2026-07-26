@@ -1,0 +1,15 @@
+name: geopulse
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.11
+  - numpy>=1.24
+  - scipy>=1.10
+  - matplotlib>=3.7
+  - h5py>=3.8
+  - pyyaml>=6.0
+  - pip
+  - pip:
+    - loguru>=0.7
+    - geopulse

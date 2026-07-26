@@ -1,0 +1,29 @@
+line-length = 100
+target-version = "py310"
+
+[lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+]
+ignore = [
+    "E501",  # line too long (docstrings often carry equations that exceed 100 cols)
+    "UP037", # quoted annotations (kept for TYPE_CHECKING clarity)
+    "UP045", # X | None modernisation (opt-in later)
+    "B008",  # function-call in default argument
+]
+
+[lint.per-file-ignores]
+"tests/**/*.py"     = ["D", "N", "E", "F"]
+"examples/**/*.py"  = ["D"]
+"docs/**/*.py"      = ["D"]
+
+[lint.pydocstyle]
+convention = "numpy"
+
+[lint.isort]
+known-first-party = ["geopulse"]

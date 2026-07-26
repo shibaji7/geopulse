@@ -1,0 +1,121 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+# TODO(PI): spec Section 4.1 lists build-backend = "setuptools.backends._legacy:_Backend"
+# which does not resolve in current setuptools. Using the canonical build_meta backend.
+# Also, spec pairs dynamic version with setuptools-scm; that requires a git tag on disk.
+# For Phase 0 scaffold we use a static version pinned to _version.py to guarantee
+# `pip install -e .` works before the first tag is cut. Switch to dynamic + scm at v0.1.
+
+[project]
+name = "geopulse"
+version = "0.1.0a0"
+description = "Unified engine for geomagnetically induced currents across grounded infrastructure"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+authors = [
+    {name = "Shibaji Chakraborty", email = "chakras2@erau.edu"},
+    {name = "David Boteler"},
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+    "Typing :: Typed",
+]
+keywords = ["GIC", "space-weather", "geomagnetically-induced-currents", "telluric",
+            "submarine-cable", "pipeline", "power-grid", "impedance"]
+
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "matplotlib>=3.7",
+    "h5py>=3.8",
+    "pyyaml>=6.0",
+    "loguru>=0.7",
+]
+
+[project.optional-dependencies]
+data = [
+    "xarray>=2023.1",
+    "netCDF4>=1.6",
+    "pandas>=2.0",
+]
+viz = [
+    "cartopy>=0.21",
+    "geopandas>=0.13",
+    "shapely>=2.0",
+]
+earth3d = [
+    "SimPEG>=0.20",
+]
+spice = [
+    "PySpice>=1.5",
+]
+service = [
+    "fastapi>=0.100",
+    "uvicorn>=0.23",
+]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "pytest-xdist>=3.3",
+    "ruff>=0.4",
+    "mypy>=1.5",
+    "pre-commit>=3.3",
+    "sphinx>=7.0",
+    "sphinx-rtd-theme>=1.3",
+    "sphinx-autodoc-typehints>=1.24",
+    "nbsphinx>=0.9",
+    "towncrier>=23.6",
+]
+all = [
+    "geopulse[data,viz,earth3d,spice,service,dev]",
+]
+
+[project.urls]
+Homepage = "https://github.com/shibaji7/geopulse"
+Documentation = "https://geopulse.readthedocs.io"
+Repository = "https://github.com/shibaji7/geopulse"
+Issues = "https://github.com/shibaji7/geopulse/issues"
+Changelog = "https://github.com/shibaji7/geopulse/blob/main/CHANGELOG.md"
+
+[project.scripts]
+geopulse = "geopulse.cli:main"
+
+[project.entry-points."geopulse.earth_models"]
+layered_1d = "geopulse.earth.layered_1d:Layered1D"
+
+[project.entry-points."geopulse.solvers"]
+lpm = "geopulse.solver.lpm:LPMSolver"
+
+[project.entry-points."geopulse.networks"]
+cable = "geopulse.network.cable:CableNetwork"
+powergrid = "geopulse.network.powergrid:PowerGridNetwork"
+pipeline = "geopulse.network.pipeline:PipelineNetwork"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+geopulse = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "slow: marks tests as slow (run with --runslow)",
+    "benchmark: marks performance benchmarks (run with --runbench)",
+    "integration: marks integration tests",
+]
+addopts = "-v --strict-markers --tb=short"
+filterwarnings = [
+    "ignore::DeprecationWarning:h5py",
+]

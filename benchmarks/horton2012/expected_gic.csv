@@ -1,0 +1,15 @@
+# Horton et al. (2012) Table VII — Total GIC Flow Into Substation Ground Grid
+# Reference values in Amperes, for uniform 1 V/km northward and 1 V/km
+# eastward geoelectric fields on the EPRI21 test network.
+#
+# Sub 1: GIC blocking device (capacitor) at T1 breaks the DC path → 0 A.
+# Sub 7: switching station with no grounded transformer → 0 A.
+node_id,gic_north_A,gic_east_A
+dc_sub1,0.00,0.00
+dc_sub2,115.63,-189.29
+dc_sub3,139.85,-109.49
+dc_sub4,19.98,-124.58
+dc_sub5,-279.08,-65.46
+dc_sub6,-57.29,354.52
+dc_sub7,0.00,0.00
+dc_sub8,60.90,134.30

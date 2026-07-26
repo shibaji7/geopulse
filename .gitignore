@@ -1,0 +1,84 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+eggs/
+*.whl
+pip-wheel-metadata/
+
+# === Virtual environments ===
+.venv/
+venv/
+env/
+ENV/
+.conda/
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# === Testing ===
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+
+# === Type checking ===
+.mypy_cache/
+.pytype/
+
+# === Documentation build ===
+docs/_build/
+docs/api/_autosummary/
+site/
+
+# === Jupyter ===
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# === Data (never commit large data) ===
+*.hdf5
+*.h5
+*.nc
+*.nc4
+*.cdf
+!tests/data/*.hdf5
+!tests/data/*.h5
+!benchmarks/**/*.csv
+!benchmarks/**/*.json
+
+# === OS ===
+.DS_Store
+Thumbs.db
+*.bak
+*.tmp
+
+# === Secrets (should never exist, but safety net) ===
+*.env
+.env.*
+secrets/
+
+# === Build artifacts ===
+*.log
+*.out
+
+# === Local project documentation (kept out of the public repo) ===
+geopulse_handoff.md
+geopulse_architecture.pptx
+
+# === Third-party copyrighted material — keep local only ===
+# The Horton (2012) paper PDF is IEEE-copyrighted; do not redistribute.
+benchmarks/horton2012/*.pdf
