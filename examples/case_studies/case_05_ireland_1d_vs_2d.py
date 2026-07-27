@@ -29,7 +29,7 @@ from geopulse.earth.base import ConductivityLayer
 from geopulse.earth.layered_1d import Layered1D
 from geopulse.earth.structured_2d import CoastalCorrection2D
 from geopulse.network.powergrid import PowerGridNetwork
-from geopulse.solver.lpm import LPMSolver
+from geopulse.solver.nam import NAMSolver
 
 _OUT = Path(__file__).parent.parent / "output"
 _OUT.mkdir(exist_ok=True)
@@ -57,7 +57,7 @@ Y = net.assemble_network_admittance()
 Z = net.assemble_earthing_impedance()
 diag_z = np.diag(Z)
 V_th = net.compute_thevenin_voltages(ex_Vm=3e-3, ey_Vm=0.0)
-r = LPMSolver().solve(net, Y, Z, V_th)
+r = NAMSolver().solve(net, Y, Z, V_th)
 ng = np.where(diag_z > 0, r.node_voltages_V / np.where(diag_z > 0, diag_z, 1.0), 0.0)
 print(f"peak substation |GIC| at 3 V/km east (proxy grid) = {np.max(np.abs(ng)):.2f} A")
 print(f"|Z(1e-2 Hz)|  1-D = {Z1[np.argmin(abs(freqs - 1e-2))]:.3e} Ω")

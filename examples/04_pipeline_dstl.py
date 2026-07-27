@@ -20,7 +20,7 @@ from geopulse.network.pipeline import (
     PipelineParameters,
     pipe_to_soil_voltage_analytic,
 )
-from geopulse.solver.lpm import LPMSolver
+from geopulse.solver.nam import NAMSolver
 
 # 100 km pipeline, typical steel + degraded coating.
 L_m = 100_000.0
@@ -40,7 +40,7 @@ net = PipelineNetwork(params)
 Y = net.assemble_network_admittance()
 Z = net.assemble_earthing_impedance()
 V_th = net.compute_thevenin_voltages(ex_Vm=1e-3, ey_Vm=0.0)  # 1 V/km east
-result = LPMSolver().solve(net, Y, Z, V_th)
+result = NAMSolver().solve(net, Y, Z, V_th)
 
 x_km = net.node_positions_m / 1000.0
 V_analytic = pipe_to_soil_voltage_analytic(1e-3, L_m, z, y, net.node_positions_m)

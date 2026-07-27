@@ -27,7 +27,7 @@ import numpy as np
 
 from geopulse.geo import prime_vertical_radius_m
 from geopulse.network.pipeline import PipelineNetwork, PipelineParameters
-from geopulse.solver.lpm import LPMSolver
+from geopulse.solver.nam import NAMSolver
 
 _OUT = Path(__file__).parent.parent / "output"
 _OUT.mkdir(exist_ok=True)
@@ -59,7 +59,7 @@ for theta in angles_deg:
     ex = 1e-3 * np.cos(np.radians(theta))
     ey = 1e-3 * np.sin(np.radians(theta))
     V_th = net.compute_thevenin_voltages(ex_Vm=ex, ey_Vm=ey)
-    r = LPMSolver().solve(net, Y, Z, V_th)
+    r = NAMSolver().solve(net, Y, Z, V_th)
     peaks.append(float(np.max(np.abs(r.node_voltages_V))))
     print(f"θ = {theta:5.0f}° (E from north)  peak |V p-to-soil| = {peaks[-1]:.2f} V")
 

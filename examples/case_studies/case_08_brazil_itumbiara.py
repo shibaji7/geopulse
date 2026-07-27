@@ -30,7 +30,7 @@ from geopulse.earth.base import ConductivityLayer
 from geopulse.earth.layered_1d import Layered1D
 from geopulse.efield.planewave import compute_efield_planewave
 from geopulse.network.powergrid import PowerGridNetwork
-from geopulse.solver.lpm import LPMSolver
+from geopulse.solver.nam import NAMSolver
 from geopulse.sources.synthetic import SyntheticSource
 
 _OUT = Path(__file__).parent.parent / "output"
@@ -50,7 +50,7 @@ net = PowerGridNetwork.from_file(str(_BENCH))
 Y = net.assemble_network_admittance()
 Z = net.assemble_earthing_impedance()
 diag_z = np.diag(Z)
-solver = LPMSolver()
+solver = NAMSolver()
 
 for amp in amps_nT:
     src = SyntheticSource(waveform="gaussian_pulse", amplitude_nT=float(amp), sigma_s=600.0)

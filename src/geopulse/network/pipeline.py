@@ -36,7 +36,7 @@ distributed-parameter model (``Z_ser → zΔℓ``, ``Y_sh → yΔℓ/2``). Each
 segment is emitted as a single :class:`~geopulse.network.base.Branch` with
 resistance ``Real(Z_ser)`` between end nodes, and shunt admittances are
 summed onto :class:`~geopulse.network.base.Node.earthing_impedance_Ohm`.
-:class:`~geopulse.solver.lpm.LPMSolver` then solves the whole thing as a
+:class:`~geopulse.solver.nam.NAMSolver` then solves the whole thing as a
 standard LP network.
 
 Insulated (open-circuit) ends are the default: the pipeline endpoints
@@ -55,7 +55,7 @@ and insulated ends, the pipe-to-soil voltage is
 
 Peak :math:`|V|` sits at the ends and equals :math:`(E/\gamma)\tanh(\gamma L / 2)`.
 :func:`pipe_to_soil_voltage_analytic` returns this profile;
-:class:`PipelineNetwork` solved via :class:`LPMSolver` reproduces it to
+:class:`PipelineNetwork` solved via :class:`NAMSolver` reproduces it to
 better than 1 % once ``n_segments`` is a few tens.
 
 References

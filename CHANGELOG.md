@@ -5,6 +5,42 @@ All notable changes to GeoPulse will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0a3] - 2026-07-27
+
+Renames the solver from "LPM" to "NAM" (=LPm) per collaborator feedback
+(D. Boteler). The Nodal Admittance Matrix method is the long-established
+label in the power industry (Boteler 2014); the "Lehtinen-Pirjola
+modified" (LPm) formulation of Pirjola, Boteler, Tuck & Marsal (2022)
+is mathematically identical. This release aligns GeoPulse's public
+naming with both — one class, two labels, one code path.
+
+### Changed (**breaking — no compat shim; PyPI users must update imports**)
+- `geopulse.solver.lpm` → `geopulse.solver.nam`.
+- `LPMSolver` → `NAMSolver(method_label="NAM" | "LPm")`. Both labels
+  execute identical numerics; the choice only affects the string
+  written into `SolverResult.metadata["solver_method"]` for report
+  attribution.
+- `solve_lpm` → `solve_nam`.
+- `tests/integration/test_lpm_benchmark.py` → `test_nam_benchmark.py`.
+- Entry point `[project.entry-points."geopulse.solvers"]` key renamed
+  from `lpm` to `nam`.
+- README architecture diagram updated: `LPM` → `NAM (=LPm)`, driving
+  equation shown as `([Yⁿ] + [Yᵉ])V = Jᵉ`.
+
+### Added
+- `SolverResult.metadata: dict` field. Populated by `NAMSolver` with
+  `{"solver_method": "NAM" | "LPm"}` so downstream reports can attribute
+  the solve unambiguously.
+- Full `Pirjola et al. (2022)` citation in the solver module docstring,
+  identifying LPm and NAM as identical methods.
+
+### Note on the equivalence
+The current implementation always solved `([Yⁿ] + [Yᵉ])V = Jᵉ` — i.e.
+the NAM/LPm formulation — never the original `(1 + Yⁿ·Zᵉ)⁻¹` form. The
+0.1.0a0–a2 docstring called that "mathematically equivalent to" the
+original LP method, which was correct but understated. This release
+makes the label match what the math has always done.
+
 ## [0.1.0a2] - 2026-07-26
 
 Metadata-only release. Publishes updated package authorship to PyPI.
@@ -79,7 +115,7 @@ sub-1 % relative error.
 - **Network**: `PowerGridNetwork` with MATPOWER-GMD (`epri21.m`) loader
   handling the "row-position vs AC-bus" quirk; `PipelineNetwork` with
   DSTL equivalent-π discretisation.
-- **Solver**: `LPMSolver` with delta-winding-safe active-subspace solve;
+- **Solver**: `NAMSolver` with delta-winding-safe active-subspace solve;
   `Solver.solve()` ABC signature accepts the `ConductorNetwork`.
 - **Devices**: `TransformerModel` port of Mate 2021 top-oil + hot-spot
   (bilinear/Tustin discretisation, `ThermalParams`). `DeviceResponse`

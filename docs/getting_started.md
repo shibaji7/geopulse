@@ -102,7 +102,7 @@ never branches on tier.
 **{class}`~geopulse.network.base.ConductorNetwork`** — the
 infrastructure-agnostic spine. Cables, power grids, pipelines, and
 railways all implement the same ABC. The
-{class}`~geopulse.solver.lpm.LPMSolver` sees only nodes, branches,
+{class}`~geopulse.solver.nam.NAMSolver` sees only nodes, branches,
 admittances, and Thévenin voltages — it doesn't care what kind of
 network it's solving.
 

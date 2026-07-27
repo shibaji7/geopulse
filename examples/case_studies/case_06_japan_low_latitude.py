@@ -31,7 +31,7 @@ from geopulse.earth.base import ConductivityLayer
 from geopulse.earth.layered_1d import Layered1D
 from geopulse.efield.planewave import compute_efield_planewave
 from geopulse.network.powergrid import PowerGridNetwork
-from geopulse.solver.lpm import LPMSolver
+from geopulse.solver.nam import NAMSolver
 from geopulse.sources.synthetic import SyntheticSource
 
 _OUT = Path(__file__).parent.parent / "output"
@@ -60,7 +60,7 @@ Y = net.assemble_network_admittance()
 Z = net.assemble_earthing_impedance()
 diag_z = np.diag(Z)
 V_th = net.compute_thevenin_voltages(ex_Vm=0.0, ey_Vm=peak_Ey_Vm)
-r = LPMSolver().solve(net, Y, Z, V_th)
+r = NAMSolver().solve(net, Y, Z, V_th)
 ng = np.where(diag_z > 0, r.node_voltages_V / np.where(diag_z > 0, diag_z, 1.0), 0.0)
 print(f"peak substation |GIC| (proxy) = {np.max(np.abs(ng)):.2f} A")
 print("(Watari 2015 reported ~30 A at Shin-Fukushima)")

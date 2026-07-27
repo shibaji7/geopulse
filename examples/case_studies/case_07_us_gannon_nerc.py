@@ -29,7 +29,7 @@ import numpy as np
 from geopulse.earth.base import ConductivityLayer
 from geopulse.earth.layered_1d import Layered1D
 from geopulse.network.powergrid import PowerGridNetwork
-from geopulse.solver.lpm import LPMSolver
+from geopulse.solver.nam import NAMSolver
 
 _OUT = Path(__file__).parent.parent / "output"
 _OUT.mkdir(exist_ok=True)
@@ -54,7 +54,7 @@ for sigma in sigma_Sm_list:
     earth = Layered1D([ConductivityLayer(np.inf, sigma)])
     Zref = float(np.abs(earth.compute_impedance(np.array([1e-2])).Z_values[0]))
     V_th = net.compute_thevenin_voltages(ex_Vm=E_NERC_Vm, ey_Vm=0.0)
-    r = LPMSolver().solve(net, Y, Z, V_th)
+    r = NAMSolver().solve(net, Y, Z, V_th)
     ng = np.where(diag_z > 0, r.node_voltages_V / np.where(diag_z > 0, diag_z, 1.0), 0.0)
     peak_gic_A.append(float(np.max(np.abs(ng))))
     print(f"σ = {sigma:.0e} S/m  |Z@10mHz| = {Zref:.2e} Ω  peak |GIC| = {peak_gic_A[-1]:.1f} A")

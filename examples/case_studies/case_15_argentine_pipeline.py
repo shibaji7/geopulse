@@ -31,7 +31,7 @@ from geopulse.earth.layered_1d import Layered1D
 from geopulse.efield.planewave import compute_efield_planewave
 from geopulse.geo import prime_vertical_radius_m
 from geopulse.network.pipeline import PipelineNetwork, PipelineParameters
-from geopulse.solver.lpm import LPMSolver
+from geopulse.solver.nam import NAMSolver
 from geopulse.sources.synthetic import SyntheticSource
 
 _OUT = Path(__file__).parent.parent / "output"
@@ -66,7 +66,7 @@ Ey_t = irfft(Ey_f, n=len(b.time_s))
 # 3. Per-time-step DSTL solve → downsampled midpoint PSP time series.
 Y = net.assemble_network_admittance()
 Z = net.assemble_earthing_impedance()
-solver = LPMSolver()
+solver = NAMSolver()
 # Track voltage at the pipe midpoint node.
 mid_node_idx = params.n_segments // 2
 V_mid_t = np.empty_like(b.time_s)

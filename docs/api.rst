@@ -77,7 +77,7 @@ Circuit solvers
 
    geopulse.solver
    geopulse.solver.base
-   geopulse.solver.lpm
+   geopulse.solver.nam
 
 Devices
 -------

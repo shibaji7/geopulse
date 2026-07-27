@@ -34,7 +34,7 @@ from geopulse.earth.base import ConductivityLayer
 from geopulse.earth.layered_1d import Layered1D
 from geopulse.efield.planewave import compute_efield_planewave
 from geopulse.network.powergrid import PowerGridNetwork
-from geopulse.solver.lpm import LPMSolver
+from geopulse.solver.nam import NAMSolver
 from geopulse.sources.synthetic import SyntheticSource
 
 _OUT = Path(__file__).parent.parent / "output"
@@ -64,7 +64,7 @@ branch_ids = [br.branch_id for br in net.get_branches()]
 target_idx = branch_ids.index("dc_xf10_hi")
 
 gic_A = np.empty_like(b.time_s)
-solver = LPMSolver()
+solver = NAMSolver()
 for i, e in enumerate(Ey_t):
     V_th = net.compute_thevenin_voltages(ex_Vm=0.0, ey_Vm=e)
     r = solver.solve(net, Y, Z, V_th)

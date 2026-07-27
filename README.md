@@ -31,12 +31,12 @@ implementation that ships alongside peer-reviewed papers.
 ```
    SOURCES         EARTH           E-FIELD         NETWORK          SOLVER          DEVICES         METRICS
   ┌────────┐    ┌────────┐      ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
-  │SuperMAG│    │ 1-D    │      │Plane-wave│    │Cables    │    │LPM       │    │Transform.│    │GIC / THD │
+  │SuperMAG│    │ 1-D    │      │Plane-wave│    │Cables    │    │NAM (=LPm)│    │Transform.│    │GIC / THD │
   │INTERMAG│──▶│ Layered│  ──▶ │Convolut. │──▶│Power grid│──▶ │MNA       │──▶│CP units  │──▶│Hotspot   │
   │SWMF MHD│    │ 2-D    │      │Coastal   │    │Pipelines │    │PySpice   │    │Rectifier │    │Exceedance│
   │Synth.  │    │ 3-D    │      │Non-unif. │    │Railways  │    │          │    │          │    │          │
   └────────┘    └────────┘      └──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘
-       B(t)   →   σ(r)     →     E(r,t)     →   V_th=∫E·dℓ   →   I=(1+Y·Z)⁻¹Jₑ  →   i_m(λ)    →   THD
+       B(t)   →   σ(r)     →     E(r,t)     →   V_th=∫E·dℓ   →   ([Yⁿ]+[Yᵉ])V=Jᵉ →   i_m(λ)    →   THD
 ```
 
 ## Installation

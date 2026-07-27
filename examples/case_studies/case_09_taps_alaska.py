@@ -28,7 +28,7 @@ import numpy as np
 
 from geopulse.geo import meridian_radius_m
 from geopulse.network.pipeline import PipelineNetwork, PipelineParameters
-from geopulse.solver.lpm import LPMSolver
+from geopulse.solver.nam import NAMSolver
 
 _OUT = Path(__file__).parent.parent / "output"
 _OUT.mkdir(exist_ok=True)
@@ -56,7 +56,7 @@ net = PipelineNetwork(params)
 Y = net.assemble_network_admittance()
 Z = net.assemble_earthing_impedance()
 V_th = net.compute_thevenin_voltages(ex_Vm=0.0, ey_Vm=2e-3)
-r = LPMSolver().solve(net, Y, Z, V_th)
+r = NAMSolver().solve(net, Y, Z, V_th)
 peak_V = float(np.max(np.abs(r.node_voltages_V)))
 print(f"L = {L_m / 1000:.0f} km, E = 2 V/km north  →  peak |V p-to-soil| = {peak_V:.1f} V")
 

@@ -28,7 +28,7 @@ import numpy as np
 
 from geopulse.geo import prime_vertical_radius_m
 from geopulse.network.pipeline import PipelineNetwork, PipelineParameters
-from geopulse.solver.lpm import LPMSolver
+from geopulse.solver.nam import NAMSolver
 
 _OUT = Path(__file__).parent.parent / "output"
 _OUT.mkdir(exist_ok=True)
@@ -65,7 +65,7 @@ E_kVpkm_list = [1.0, 2.0, 3.0]
 fig, ax = plt.subplots(figsize=(8, 4))
 for E_Vkm in E_kVpkm_list:
     V_th = net.compute_thevenin_voltages(ex_Vm=E_Vkm * 1e-3, ey_Vm=0.0)
-    r = LPMSolver().solve(net, Y, Z, V_th)
+    r = NAMSolver().solve(net, Y, Z, V_th)
     peak = float(np.max(np.abs(r.node_voltages_V)))
     print(f"E = {E_Vkm} V/km east  →  peak |V p-to-soil| = {peak:.1f} V")
     ax.plot(net.node_positions_m / 1000.0, np.abs(r.node_voltages_V), label=f"E = {E_Vkm} V/km")

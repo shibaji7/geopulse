@@ -35,7 +35,7 @@ from geopulse.network.pipeline import (
     PipelineParameters,
     pipe_to_soil_voltage_analytic,
 )
-from geopulse.solver.lpm import LPMSolver
+from geopulse.solver.nam import NAMSolver
 
 _OUT = Path(__file__).parent.parent / "output"
 _OUT.mkdir(exist_ok=True)
@@ -76,7 +76,7 @@ V_th = net.compute_thevenin_voltages(ex_Vm=E_Vm, ey_Vm=0.0)
 # ---------------------------------------------------------------------------
 # 3. LP solve → node voltages == pipe-to-soil voltages at each grid point.
 # ---------------------------------------------------------------------------
-result = LPMSolver().solve(net, Y, Z, V_th)
+result = NAMSolver().solve(net, Y, Z, V_th)
 
 x_km = net.node_positions_m / 1000.0
 V_num = result.node_voltages_V

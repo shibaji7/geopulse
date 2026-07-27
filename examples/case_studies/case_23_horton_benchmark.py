@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from geopulse.network.powergrid import PowerGridNetwork
-from geopulse.solver.lpm import LPMSolver
+from geopulse.solver.nam import NAMSolver
 
 _OUT = Path(__file__).parent.parent / "output"
 _OUT.mkdir(exist_ok=True)
@@ -54,7 +54,7 @@ with (_BENCH / "expected_gic.csv").open() as fh:
 # ---------------------------------------------------------------------------
 def _solve(ex_Vm: float, ey_Vm: float) -> dict[str, float]:
     V_th = net.compute_thevenin_voltages(ex_Vm=ex_Vm, ey_Vm=ey_Vm)
-    r = LPMSolver().solve(net, Y, Z, V_th)
+    r = NAMSolver().solve(net, Y, Z, V_th)
     ng = np.where(diag_z > 0, r.node_voltages_V / np.where(diag_z > 0, diag_z, 1.0), 0.0)
     return dict(zip(r.node_ids, ng, strict=True))
 

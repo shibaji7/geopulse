@@ -22,7 +22,7 @@ import numpy as np
 
 from geopulse.devices.transformer import ThermalParams, TransformerModel
 from geopulse.network.powergrid import PowerGridNetwork
-from geopulse.solver.lpm import LPMSolver
+from geopulse.solver.nam import NAMSolver
 
 BENCH = Path(__file__).parent.parent / "benchmarks" / "horton2012" / "epri21.m"
 
@@ -49,7 +49,7 @@ branch_ids = [b.branch_id for b in net.get_branches()]
 target_idx = branch_ids.index(TARGET_BRANCH_ID)
 
 gic_A = np.empty_like(t_s)
-solver = LPMSolver()
+solver = NAMSolver()
 for i, e in enumerate(E_Vm):
     V_th = net.compute_thevenin_voltages(ex_Vm=e, ey_Vm=0.0)
     result = solver.solve(net, Y, Z, V_th)

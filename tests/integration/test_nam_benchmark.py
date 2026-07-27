@@ -25,7 +25,7 @@ import numpy as np
 import pytest
 
 from geopulse.network.powergrid import PowerGridNetwork
-from geopulse.solver.lpm import LPMSolver
+from geopulse.solver.nam import NAMSolver
 
 _BENCH_DIR = Path(__file__).parent.parent.parent / "benchmarks" / "horton2012"
 EPRI21 = _BENCH_DIR / "epri21.m"
@@ -62,7 +62,7 @@ def _solve_uniform(ex_Vm: float, ey_Vm: float):
     Y = net.assemble_network_admittance()
     Z = net.assemble_earthing_impedance()
     V_th = net.compute_thevenin_voltages(ex_Vm=ex_Vm, ey_Vm=ey_Vm)
-    result = LPMSolver().solve(net, Y, Z, V_th)
+    result = NAMSolver().solve(net, Y, Z, V_th)
     diag_z = np.diag(Z)
     grounded = diag_z > 0.0
     node_gic_A = np.zeros_like(result.node_voltages_V)

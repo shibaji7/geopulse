@@ -1,14 +1,14 @@
 """Abstract base class for circuit solvers.
 
 The solver takes a :class:`~geopulse.network.base.ConductorNetwork` (which
-provides ``Y_n``, ``Z_e``, and ``V_th``) and returns the GIC in every branch
-and the voltage at every node.
+provides ``[Y^n]``, earthing impedance, and ``V_th``) and returns the GIC in
+every branch and the voltage at every node.
 
 References
 ----------
-.. [1] Lehtinen, M., & Pirjola, R. (1985). Currents produced in earthed
-   conductor networks by geomagnetically-induced electric fields. Annales
-   Geophysicae, 3, 479-484.
+.. [1] Pirjola, R. J., Boteler, D. H., Tuck, L., & Marsal, S. (2022).
+   The Lehtinen-Pirjola method modified for efficient modelling of GIC in
+   multiple voltage levels of a power network. Ann. Geophys., 40, 205-215.
 .. [2] Boteler, D. H. (2014). Methodology for simulation of geomagnetically
    induced currents in power systems. J. Space Weather Space Clim., 4, A21.
 """
@@ -16,7 +16,7 @@ References
 from __future__ import annotations
 
 import abc
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -43,12 +43,18 @@ class SolverResult:
         Ordered node IDs matching the columns of :attr:`node_voltages_V`.
     branch_ids : list of str
         Ordered branch IDs matching the columns of :attr:`branch_currents_A`.
+    metadata : dict
+        Solver-specific auxiliary output. Populated by concrete solvers with
+        e.g. ``{"solver_method": "NAM"}`` so downstream reports can attribute
+        results to the correct algorithm. Mutable; the frozen-dataclass
+        guarantee only covers rebinding the field, not its contents.
     """
 
     node_voltages_V: np.ndarray
     branch_currents_A: np.ndarray
     node_ids: list[str]
     branch_ids: list[str]
+    metadata: dict = field(default_factory=dict)
 
 
 class Solver(abc.ABC):
@@ -56,7 +62,8 @@ class Solver(abc.ABC):
 
     Subclasses:
 
-    * ``LPMSolver`` — Lehtinen-Pirjola matrix (resistive, single-phase).
+    * ``NAMSolver`` — Nodal Admittance Matrix / Lehtinen-Pirjola modified
+      (resistive, single-phase).
     * ``MNASolver`` — Modified Nodal Analysis (reactive, multi-phase).
     * ``PySpiceSolver`` — nonlinear transient via SPICE backend.
     """

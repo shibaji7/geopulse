@@ -30,7 +30,7 @@ import numpy as np
 from geopulse.geo import prime_vertical_radius_m
 from geopulse.network.pipeline import PipelineNetwork, PipelineParameters
 from geopulse.network.powergrid import PowerGridNetwork
-from geopulse.solver.lpm import LPMSolver
+from geopulse.solver.nam import NAMSolver
 
 _OUT = Path(__file__).parent.parent / "output"
 _OUT.mkdir(exist_ok=True)
@@ -48,7 +48,7 @@ grid = PowerGridNetwork.from_file(str(_BENCH))
 Y_g = grid.assemble_network_admittance()
 Z_g = grid.assemble_earthing_impedance()
 V_th_g = grid.compute_thevenin_voltages(ex_Vm=E_east_Vm, ey_Vm=0.0)
-r_g = LPMSolver().solve(grid, Y_g, Z_g, V_th_g)
+r_g = NAMSolver().solve(grid, Y_g, Z_g, V_th_g)
 diag_zg = np.diag(Z_g)
 gic_grid_A = np.where(diag_zg > 0, r_g.node_voltages_V / np.where(diag_zg > 0, diag_zg, 1.0), 0.0)
 print(f"[GRID] peak substation |GIC| = {np.max(np.abs(gic_grid_A)):.2f} A")
@@ -75,7 +75,7 @@ pipe = PipelineNetwork(
 Y_p = pipe.assemble_network_admittance()
 Z_p = pipe.assemble_earthing_impedance()
 V_th_p = pipe.compute_thevenin_voltages(ex_Vm=E_east_Vm, ey_Vm=0.0)
-r_p = LPMSolver().solve(pipe, Y_p, Z_p, V_th_p)
+r_p = NAMSolver().solve(pipe, Y_p, Z_p, V_th_p)
 psp_V = r_p.node_voltages_V
 print(f"[PIPE] peak |V pipe-to-soil| = {np.max(np.abs(psp_V)):.2f} V")
 

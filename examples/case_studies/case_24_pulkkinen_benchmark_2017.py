@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from geopulse.network.powergrid import PowerGridNetwork
-from geopulse.solver.lpm import LPMSolver
+from geopulse.solver.nam import NAMSolver
 
 _OUT = Path(__file__).parent.parent / "output"
 _OUT.mkdir(exist_ok=True)
@@ -48,7 +48,7 @@ with (_BENCH / "expected_gic.csv").open() as fh:
 # 2. Sweep the field direction from 0° (north) → 180° in 15° steps.
 theta_deg = np.arange(0.0, 181.0, 15.0)
 E_mag_Vm = 1e-3
-solver = LPMSolver()
+solver = NAMSolver()
 peak_per_theta: dict[str, list[float]] = {n: [] for n in paper}
 
 for theta in theta_deg:

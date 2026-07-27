@@ -1,4 +1,4 @@
-"""Tests for :class:`geopulse.solver.lpm.LPMSolver`.
+"""Tests for :class:`geopulse.solver.nam.NAMSolver`.
 
 Includes a 2-node hand-calculable case that exercises the LPM assembly
 without any benchmark data files.
@@ -9,7 +9,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from geopulse.solver.lpm import solve_lpm
+from geopulse.solver.nam import solve_nam
 
 
 def test_two_node_hand_calculation():
@@ -32,7 +32,7 @@ def test_two_node_hand_calculation():
     endpoints = np.array([[0, 1]])
     conductances = np.array([1.0])
 
-    V, I = solve_lpm(Y_net, Z_e, V_th, endpoints, conductances)
+    V, I = solve_nam(Y_net, Z_e, V_th, endpoints, conductances)
 
     # Symmetric voltage split. Closed form:
     #   Y_tot = [[1.1, -1], [-1, 1.1]], J = [-100, +100]
@@ -56,38 +56,38 @@ def test_ungrounded_node_no_crash():
     endpoints = np.array([[0, 1]])
     conductances = np.array([1.0])
 
-    V, I = solve_lpm(Y_net, Z_e, V_th, endpoints, conductances)
+    V, I = solve_nam(Y_net, Z_e, V_th, endpoints, conductances)
     # Both nodes have branch contribution → both active; must be finite.
     assert np.all(np.isfinite(V))
     assert np.all(np.isfinite(I))
 
 
-def test_solve_lpm_raises_on_bad_endpoint_shape():
+def test_solve_nam_raises_on_bad_endpoint_shape():
     from geopulse.exceptions import ShapeMismatchError
-    from geopulse.solver.lpm import solve_lpm
+    from geopulse.solver.nam import solve_nam
 
     Y = np.eye(2)
     Z = np.diag([10.0, 10.0])
     Vth = np.array([1.0])
     with pytest.raises(ShapeMismatchError, match="branch_endpoints"):
-        solve_lpm(Y, Z, Vth, np.array([[0, 1, 0]]), np.array([1.0]))  # 3-col endpoints
+        solve_nam(Y, Z, Vth, np.array([[0, 1, 0]]), np.array([1.0]))  # 3-col endpoints
 
 
-def test_solve_lpm_raises_on_bad_conductance_shape():
+def test_solve_nam_raises_on_bad_conductance_shape():
     from geopulse.exceptions import ShapeMismatchError
-    from geopulse.solver.lpm import solve_lpm
+    from geopulse.solver.nam import solve_nam
 
     Y = np.eye(2)
     Z = np.diag([10.0, 10.0])
     Vth = np.array([1.0])
     with pytest.raises(ShapeMismatchError, match="branch_conductances"):
-        solve_lpm(Y, Z, Vth, np.array([[0, 1]]), np.array([1.0, 2.0]))  # wrong length
+        solve_nam(Y, Z, Vth, np.array([[0, 1]]), np.array([1.0, 2.0]))  # wrong length
 
 
 def test_solver_from_network_wires_metadata():
-    """LPMSolver.solve must accept a ConductorNetwork and return SolverResult."""
+    """NAMSolver.solve must accept a ConductorNetwork and return SolverResult."""
     from geopulse.network.base import Branch, ConductorNetwork, Node
-    from geopulse.solver.lpm import LPMSolver
+    from geopulse.solver.nam import NAMSolver
 
     class _MiniNet(ConductorNetwork):
         def get_nodes(self):
@@ -117,7 +117,7 @@ def test_solver_from_network_wires_metadata():
     Z = net.assemble_earthing_impedance()
     V_th = net.compute_thevenin_voltages(0.0, 0.0)
 
-    result = LPMSolver().solve(net, Y, Z, V_th)
+    result = NAMSolver().solve(net, Y, Z, V_th)
     assert result.node_ids == ["A", "B"]
     assert result.branch_ids == ["br_AB"]
     assert result.node_voltages_V.shape == (2,)

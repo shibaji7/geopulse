@@ -1,7 +1,7 @@
 """Tests for :class:`geopulse.network.pipeline.PipelineNetwork`.
 
 Critical acceptance test: the equivalent-π discretised network solved
-through :class:`LPMSolver` must reproduce the closed-form DSTL pipe-to-soil
+through :class:`NAMSolver` must reproduce the closed-form DSTL pipe-to-soil
 voltage :math:`V(x) = (E/\\gamma)\\sinh(\\gamma(x - L/2))/\\cosh(\\gamma L/2)`
 for a uniform longitudinal E-field. Spec Section 22 Phase 3 sets 5 %; a
 40-segment discretisation clears that with margin.
@@ -18,7 +18,7 @@ from geopulse.network.pipeline import (
     PipelineParameters,
     pipe_to_soil_voltage_analytic,
 )
-from geopulse.solver.lpm import LPMSolver
+from geopulse.solver.nam import NAMSolver
 
 
 def _make_pipeline(length_m=100_000.0, z=3e-4, y=1e-6, n_seg=40):
@@ -61,7 +61,7 @@ def test_pi_section_matches_analytic_uniform_field():
 
     # Uniform 1 V/km eastward along a purely eastward pipe.
     V_th = net.compute_thevenin_voltages(ex_Vm=1e-3, ey_Vm=0.0)
-    result = LPMSolver().solve(net, Y, Z, V_th)
+    result = NAMSolver().solve(net, Y, Z, V_th)
 
     V_analytic = pipe_to_soil_voltage_analytic(
         E_Vm=1e-3,
@@ -95,7 +95,7 @@ def test_convergence_with_n_segments():
         Y = net.assemble_network_admittance()
         Z = net.assemble_earthing_impedance()
         V_th = net.compute_thevenin_voltages(ex_Vm=1e-3, ey_Vm=0.0)
-        result = LPMSolver().solve(net, Y, Z, V_th)
+        result = NAMSolver().solve(net, Y, Z, V_th)
         # Endpoint voltage magnitude
         errs.append(abs(abs(result.node_voltages_V[-1]) - abs(V_ref)) / abs(V_ref))
     # Should decrease as we refine
@@ -125,7 +125,7 @@ def test_zero_field_gives_zero_voltage():
     Y = net.assemble_network_admittance()
     Z = net.assemble_earthing_impedance()
     V_th = net.compute_thevenin_voltages(ex_Vm=0.0, ey_Vm=0.0)
-    result = LPMSolver().solve(net, Y, Z, V_th)
+    result = NAMSolver().solve(net, Y, Z, V_th)
     np.testing.assert_allclose(result.node_voltages_V, 0.0, atol=1e-9)
 
 

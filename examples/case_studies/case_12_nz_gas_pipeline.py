@@ -29,7 +29,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from geopulse.network.pipeline import PipelineNetwork, PipelineParameters
-from geopulse.solver.lpm import LPMSolver
+from geopulse.solver.nam import NAMSolver
 
 _OUT = Path(__file__).parent.parent / "output"
 _OUT.mkdir(exist_ok=True)
@@ -60,8 +60,8 @@ E_mag = 1e-3  # 1 V/km
 
 V_th_east = net.compute_thevenin_voltages(ex_Vm=E_mag, ey_Vm=0.0)
 V_th_north = net.compute_thevenin_voltages(ex_Vm=0.0, ey_Vm=E_mag)
-r_east = LPMSolver().solve(net, Y, Z, V_th_east)
-r_north = LPMSolver().solve(net, Y, Z, V_th_north)
+r_east = NAMSolver().solve(net, Y, Z, V_th_east)
+r_north = NAMSolver().solve(net, Y, Z, V_th_north)
 
 peak_east = float(np.max(np.abs(r_east.node_voltages_V)))
 peak_north = float(np.max(np.abs(r_north.node_voltages_V)))
