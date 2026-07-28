@@ -151,7 +151,6 @@ omit = [
     "src/geopulse/network/railway.py",
     "src/geopulse/network/graph.py",
     "src/geopulse/network/thevenin.py",
-    "src/geopulse/solver/mna.py",
     "src/geopulse/solver/pyspice_bridge.py",
     "src/geopulse/solver/sparse.py",
     "src/geopulse/sources/swmf_mhd.py",
