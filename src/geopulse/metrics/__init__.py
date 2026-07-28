@@ -2,4 +2,6 @@
 
 from __future__ import annotations
 
-__all__: list[str] = []
+from geopulse.metrics.gic import GICStats, exceedance_curve, summary_stats
+
+__all__ = ["GICStats", "exceedance_curve", "summary_stats"]
