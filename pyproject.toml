@@ -148,7 +148,6 @@ omit = [
     "src/geopulse/efield/convolution.py",
     "src/geopulse/efield/nonuniform.py",
     "src/geopulse/network/cable.py",
-    "src/geopulse/network/railway.py",
     "src/geopulse/network/graph.py",
     "src/geopulse/network/thevenin.py",
     "src/geopulse/solver/mna.py",
