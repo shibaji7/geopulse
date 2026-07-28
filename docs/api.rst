@@ -90,6 +90,16 @@ Devices
    geopulse.devices.base
    geopulse.devices.transformer
 
+Metrics
+-------
+
+.. autosummary::
+   :toctree: api/_autosummary
+   :recursive:
+
+   geopulse.metrics
+   geopulse.metrics.gic
+
 Uncertainty quantification
 --------------------------
 
