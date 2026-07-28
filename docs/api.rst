@@ -111,3 +111,13 @@ I/O
    geopulse.io.hdf5
    geopulse.io.matpower
    geopulse.io.iaga2002
+
+Visualisation
+-------------
+
+.. autosummary::
+   :toctree: api/_autosummary
+   :recursive:
+
+   geopulse.viz
+   geopulse.viz.timeseries
