@@ -1,0 +1,77 @@
+name: Benchmark or citation request
+description: Ask GeoPulse to reproduce numbers from a specific published paper, or flag a paper whose data / method should be built in.
+title: "[Benchmark] "
+labels: ["benchmark", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        GeoPulse aims to be a reproducible reference implementation. If you have a paper whose GIC / PSP / THD / transformer-temperature numbers you'd like reproduced (or added as a regression test), open one issue per paper here.
+
+        For a general bug report about an existing benchmark, please use the "Bug report" template instead.
+
+  - type: input
+    id: paper-citation
+    attributes:
+      label: Full paper citation
+      description: Authors, year, title, journal, volume, pages.
+      placeholder: "Horton, R., Boteler, D., Overbye, T. J., Pirjola, R., Dugan, R. C. (2012). A test case for the calculation of geomagnetically induced currents. IEEE Trans. Power Delivery, 27(4), 2368-2373."
+    validations:
+      required: true
+
+  - type: input
+    id: doi
+    attributes:
+      label: DOI or persistent URL
+      placeholder: "https://doi.org/10.1109/TPWRD.2012.2206407"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: infrastructure
+    attributes:
+      label: Infrastructure type
+      multiple: true
+      options:
+        - Power grid
+        - Submarine cable
+        - Oil / gas pipeline
+        - Electrified railway
+        - Transformer (thermal / harmonics)
+        - Earth model (1-D / 2-D / 3-D)
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: target-numbers
+    attributes:
+      label: Target numbers to reproduce
+      description: The specific tables, figures, or values the reproduction should match (e.g. "Table VII, all 8 substations, within 1%").
+    validations:
+      required: true
+
+  - type: dropdown
+    id: data-availability
+    attributes:
+      label: Input data availability
+      description: Can the driving data (magnetograms, network topology, Earth model, transformer parameters) be redistributed openly?
+      options:
+        - "Yes, fully open (public archive, CC-BY-like)"
+        - "Yes, but with attribution / rate limits (e.g. USGS, INTERMAGNET)"
+        - "Restricted (industry NDA, requires end-user agreement)"
+        - "Not sure — needs investigation"
+    validations:
+      required: true
+
+  - type: textarea
+    id: data-source
+    attributes:
+      label: Where does the input data live?
+      description: URLs, DOIs, archive names, or "attached in this issue". If it's a small (<1 MB) sample, please attach it here.
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes for the implementer
+      description: Anything you'd flag — a modelling subtlety, a known erratum, contact information for the paper's authors, etc.

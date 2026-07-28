@@ -1,0 +1,57 @@
+name: Feature request
+description: Suggest a new capability, a new API, or an enhancement to an existing one.
+title: "[Feature] "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature. Please describe **the problem** first, then the proposed solution — this makes it easier to evaluate alternatives.
+
+        For adding support for a specific published benchmark or paper, please use the "Benchmark or citation request" template instead.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the concrete use case. What can't you do today with GeoPulse that this would let you do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API or behaviour
+      description: A sketch of the API (function signature, class, config option). Doesn't need to be final — just enough to discuss shape.
+      render: python
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other ways you thought about solving this, and why you'd prefer the proposal above.
+
+  - type: dropdown
+    id: wp
+    attributes:
+      label: Related work package (if known)
+      description: Rough scope this belongs to. Skip if unsure.
+      options:
+        - "WP1 — core physics & I/O"
+        - "WP2 — networks (cable, power grid, pipeline)"
+        - "WP3 — devices, harmonics, MNA solver"
+        - "WP4 — railways, track-circuit models"
+        - "WP5 — Earth models (2-D, 3-D)"
+        - "docs / examples / benchmarks"
+        - "not sure"
+
+  - type: checkboxes
+    id: willing-to-help
+    attributes:
+      label: Would you be willing to contribute the implementation?
+      options:
+        - label: "Yes, I can open a PR"
+        - label: "Yes, with guidance from a maintainer"
+        - label: "No, but I'd like to review one"
