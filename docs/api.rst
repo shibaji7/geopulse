@@ -89,6 +89,7 @@ Devices
    geopulse.devices
    geopulse.devices.base
    geopulse.devices.transformer
+   geopulse.devices.harmonics
 
 Uncertainty quantification
 --------------------------
@@ -111,3 +112,13 @@ I/O
    geopulse.io.hdf5
    geopulse.io.matpower
    geopulse.io.iaga2002
+
+Metrics
+-------
+
+.. autosummary::
+   :toctree: api/_autosummary
+   :recursive:
+
+   geopulse.metrics
+   geopulse.metrics.thd

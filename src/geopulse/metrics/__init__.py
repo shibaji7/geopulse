@@ -2,4 +2,6 @@
 
 from __future__ import annotations
 
-__all__: list[str] = []
+from geopulse.metrics.thd import compute_thd
+
+__all__ = ["compute_thd"]
