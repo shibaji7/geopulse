@@ -32,10 +32,13 @@ types = feat,fix,docs,style,refactor,perf,test,build,ci,chore,revert
 line-length = 80
 
 [body-max-line-length]
-# 100 to match the project's ruff code line-length. Default (80) is too
-# tight for the kind of descriptive body paragraphs a scientific-package
-# commit often carries (API names + citation strings run long).
-line-length = 100
+# 300 is deliberately generous. gitlint enforces this per physical line
+# in the commit body, and `git commit -m "..."` treats each -m string as
+# a single unwrapped line — so a descriptive paragraph passed via -m
+# will trip a tight limit even when it reads fine in `git log`. 300
+# accommodates dense paragraphs without needing every contributor to
+# hand-wrap body strings.
+line-length = 300
 
 [title-must-not-contain-word]
 words = wip,tmp,temp,todo
