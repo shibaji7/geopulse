@@ -29,7 +29,7 @@ contrib = contrib-title-conventional-commits
 types = feat,fix,docs,style,refactor,perf,test,build,ci,chore,revert
 
 [title-max-length]
-line-length = 72
+line-length = 80
 
 [body-max-line-length]
 # 100 to match the project's ruff code line-length. Default (80) is too

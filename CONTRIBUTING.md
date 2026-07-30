@@ -46,7 +46,9 @@ chore(ci): add Python 3.13 to test matrix
 **Allowed types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`,
 `test`, `build`, `ci`, `chore`, `revert`.
 
-**Title length:** ≤ 72 characters. Anything longer belongs in the body.
+**Title length:** ≤ 80 characters. Anything longer belongs in the body.
+(The 8-char headroom over the classic 72-char convention lets GitHub's
+squash-merge `(#N)` suffix land without tripping the check.)
 
 **Enforcement — two levels:**
 
@@ -169,7 +171,7 @@ below for the full policy.
 
 **`gitlint-soft` — commit message.** Runs on `commit-msg`. Prints a
 warning if the commit title doesn't match Conventional Commits
-(`type(scope): summary`, ≤ 72 chars, one of the allowed types),
+(`type(scope): summary`, ≤ 80 chars, one of the allowed types),
 **but never blocks the commit locally.** CI runs the same check in
 HARD mode and *will* block the PR merge if any commit on the branch
 has a malformed title — so the local warning is a friendly heads-up,
