@@ -26,6 +26,10 @@ jobs:
       - run: python scripts/check_no_version_drift.py
       # Docstring coverage — must stay >= 85 % across src/geopulse.
       - run: interrogate -v --fail-under=85 --ignore-init-method --ignore-magic --ignore-nested-functions src/geopulse/
+      # Docstring/signature drift — catches renamed args and undocumented
+      # raises that pydoclint/numpydoc-validation can't check without also
+      # flagging our numpy-style convention. Same script pre-commit runs.
+      - run: python scripts/check_docstring_drift.py
       # Duplicate-code (pylint R0801) — narrowly scoped by .pylintrc.
       - run: pylint --rcfile=.pylintrc src/geopulse/
       # gitlint HARD mode: enforce Conventional Commits on every commit in

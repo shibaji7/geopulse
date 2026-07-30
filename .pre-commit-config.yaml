@@ -48,13 +48,24 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
-  # pydoclint was evaluated in this PR but is deliberately NOT enabled.
-  # It insists on "type hints in signature XOR docstring", but the project
-  # follows numpy/scipy convention: hints go in BOTH the signature (for
-  # tools) and the docstring (for humans). Pydoclint flagged ~50 items as
-  # DOC111 "docstring has type hints" — that's not drift, it's the
-  # convention. Revisit when a numpy-native docstring/signature drift
-  # checker (e.g. numpydoc-validation with per-rule opt-in) matures.
+  # pydoclint was evaluated in an earlier PR but is deliberately NOT
+  # enabled. It insists on "type hints in signature XOR docstring", but
+  # the project follows numpy/scipy convention: hints go in BOTH the
+  # signature (for tools) and the docstring (for humans). Pydoclint
+  # flagged ~50 items as DOC111 "docstring has type hints" — that's not
+  # drift, it's the convention. numpydoc-validation was evaluated too and
+  # hit a similar false-positive wall on frozen-dataclass `Attributes`
+  # sections. See scripts/check_docstring_drift.py for the narrowly
+  # scoped, convention-respecting replacement (GH-17).
+  - repo: local
+    hooks:
+      - id: check-docstring-drift
+        name: check docstring/signature drift (src/geopulse/ only)
+        entry: python scripts/check_docstring_drift.py
+        language: system
+        pass_filenames: false
+        files: ^src/geopulse/.*\.py$
+        stages: [pre-commit]
 
   # ----- Local hooks (project-specific shell commands) --------------------
   - repo: local
