@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://geopulse.readthedocs.io/
+    about: How-to guides, API reference, changelog. Please check here before opening an issue.
+  - name: Changelog
+    url: https://github.com/shibaji7/geopulse/blob/main/CHANGELOG.md
+    about: What changed in each release — check whether your issue is already fixed on `main`.
+  - name: Discussions (Q&A)
+    url: https://github.com/shibaji7/geopulse/discussions
+    about: For open-ended questions, method-choice discussions, or "am I using this right?" — please post here, not as an issue.
