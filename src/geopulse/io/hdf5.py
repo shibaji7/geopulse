@@ -33,7 +33,9 @@ from typing import Any
 import h5py
 import numpy as np
 
-from geopulse._version import __version__ as _GEOPULSE_VERSION
+from geopulse._version import (
+    __version__ as _GEOPULSE_VERSION,  # noqa: N812 — uppercase alias flags this as a module-level constant used as an HDF5 schema tag.
+)
 from geopulse.exceptions import DataError
 
 __all__ = [

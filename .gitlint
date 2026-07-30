@@ -1,0 +1,41 @@
+# gitlint configuration — enforces (loosely) Conventional Commits
+# (https://www.conventionalcommits.org/) so that:
+#
+#   feat(solver): add sparse Cholesky path for large grids
+#   fix(io.iaga2002): handle H-only files without D component
+#   docs(readme): add roadmap badge
+#   chore(ci): bump codecov-action from v4 to v7
+#
+# Local pre-commit stage runs gitlint in SOFT mode (warn only — see
+# .pre-commit-config.yaml). CI runs it in HARD mode (blocks merge).
+# See CONTRIBUTING.md § "Commit message conventions" for the full
+# subject/body rules.
+
+[general]
+# Ignore merge commits (auto-generated), squash-commit templates,
+# revert commits, and fixup!/squash! commits (pre-rebase drafts).
+ignore-merge-commits = true
+ignore-revert-commits = true
+ignore-fixup-commits = true
+ignore-squash-commits = true
+
+# Contrib rules for Conventional Commits ONLY. Deliberately NOT enabling
+# CC1 (Signed-off-by) — DCO discipline is overkill for a scientific
+# codebase and adds friction for beginner contributors.
+# See https://jorisroovers.com/gitlint/latest/rules/contrib_rules/
+contrib = contrib-title-conventional-commits
+
+[contrib-title-conventional-commits]
+types = feat,fix,docs,style,refactor,perf,test,build,ci,chore,revert
+
+[title-max-length]
+line-length = 72
+
+[body-max-line-length]
+# 100 to match the project's ruff code line-length. Default (80) is too
+# tight for the kind of descriptive body paragraphs a scientific-package
+# commit often carries (API names + citation strings run long).
+line-length = 100
+
+[title-must-not-contain-word]
+words = wip,tmp,temp,todo

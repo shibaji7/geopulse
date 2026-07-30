@@ -3,27 +3,95 @@ target-version = "py310"
 
 [lint]
 select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings
-    "F",    # pyflakes
-    "I",    # isort
-    "UP",   # pyupgrade
-    "B",    # flake8-bugbear
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "UP",    # pyupgrade
+    "B",     # flake8-bugbear
+    "D",     # pydocstyle (NumPy-style docstrings — see [lint.pydocstyle])
+    "N",     # pep8-naming (partial — variable-naming rules are ignored
+             # because they conflict with the project's physics-symbol
+             # + _UNIT-suffix convention. See ignore list below.)
+    "C901",  # mccabe complexity — a global ceiling of 10 with per-function
+             # `# noqa: C901` waivers on legitimately-complex parsers.
+    "ANN",   # flake8-annotations. GeoPulse claims `Typing :: Typed` in
+             # pyproject classifiers and ships py.typed; this enforces
+             # that public functions actually carry type hints.
 ]
 ignore = [
     "E501",  # line too long (docstrings often carry equations that exceed 100 cols)
     "UP037", # quoted annotations (kept for TYPE_CHECKING clarity)
     "UP045", # X | None modernisation (opt-in later)
     "B008",  # function-call in default argument
+
+    # Docstring rules that don't fit a scientific-package voice:
+    "D100",  # missing docstring in public module (we docstring modules but
+             # allow bare __init__.py without one)
+    "D104",  # missing docstring in public package (same rationale)
+    "D203",  # 1-blank-line-before-class (conflicts with D211 which we prefer)
+    "D213",  # multi-line-summary-second-line (we use D212 — first-line summary)
+
+    # PEP 8 naming rules that conflict with the project's UNIT-suffix physics
+    # convention (`gic_A`, `Bx_T`, `amplitude_nT`, `Z_ser_Ohm`, ...). These
+    # variable / argument names are load-bearing for physics readability;
+    # renaming them to strict lowercase would mangle the intent.
+    #
+    # See CONTRIBUTING.md → "Naming conventions" for the full policy.
+    "N803",  # invalid-argument-name (e.g. `gic_A`)
+    "N806",  # non-lowercase-variable-in-function (e.g. `Bx_T`, `Y`, `V`)
+    "N815",  # mixed-case-variable-in-class-scope (dataclass fields with units)
+    "N816",  # mixed-case-variable-in-global-scope
+
+    # Annotation rules that fight legitimate patterns:
+    "ANN401", # `Any` in signatures. Real uses in geopulse: `dict[str, Any]`
+              # config payloads, `**kwargs: Any` for optional passthrough,
+              # `Uncertain[T]`'s generic sample-store where T is unresolvable
+              # at signature time. Requiring narrower types here would
+              # either be a lie or make the API unusable.
 ]
 
 [lint.per-file-ignores]
-"tests/**/*.py"     = ["D", "N", "E", "F"]
-"examples/**/*.py"  = ["D"]
-"docs/**/*.py"      = ["D"]
+"tests/**/*.py"     = ["D", "N", "E", "F", "ANN"]
+"examples/**/*.py"  = ["D", "ANN"]
+"docs/**/*.py"      = ["D", "ANN"]
+"src/geopulse/_version.py" = ["D"]  # trivial one-liner module
+
+# Stub modules that intentionally raise NotImplementedYetError on every
+# method. D102 (missing method docstring) and ANN (missing annotations)
+# are both waived here — adding placeholder text or type hints would
+# just create merge conflicts when the real implementation lands
+# (see PR #11, #12, #13 for examples). Drop each entry from this list
+# when the corresponding stub becomes real code.
+"src/geopulse/devices/rectifier.py"     = ["D102", "ANN"]
+"src/geopulse/devices/cp_unit.py"       = ["D102", "ANN"]
+"src/geopulse/devices/harmonics.py"     = ["ANN"]
+"src/geopulse/network/cable.py"         = ["D102", "ANN"]
+"src/geopulse/network/railway.py"       = ["D102", "ANN"]
+"src/geopulse/network/graph.py"         = ["ANN"]
+"src/geopulse/network/thevenin.py"      = ["ANN"]
+"src/geopulse/uq/distributions.py"      = ["D102", "ANN"]
+"src/geopulse/uq/montecarlo.py"         = ["ANN"]
+"src/geopulse/uq/sensitivity.py"        = ["ANN"]
+"src/geopulse/viz/network_map.py"       = ["ANN"]
+"src/geopulse/viz/spectra.py"           = ["ANN"]
+"src/geopulse/metrics/hotspot.py"       = ["ANN"]
+"src/geopulse/metrics/exceedance.py"    = ["ANN"]
+"src/geopulse/efield/coastal.py"        = ["ANN"]
+"src/geopulse/efield/nonuniform.py"     = ["ANN"]
+"src/geopulse/solver/mna.py"            = ["ANN"]  # STUB — replaced by PR #13
+"src/geopulse/viz/timeseries.py"        = ["ANN"]  # STUB — replaced by PR #7
+"src/geopulse/solver/sparse.py"         = ["ANN"]
+"src/geopulse/solver/pyspice_bridge.py" = ["ANN"]
+"src/geopulse/sources/swmf_mhd.py"      = ["ANN"]
+"src/geopulse/io/geojson.py"            = ["ANN"]
+"src/geopulse/earth/unstructured_3d.py" = ["ANN"]
 
 [lint.pydocstyle]
 convention = "numpy"
+
+[lint.mccabe]
+max-complexity = 10
 
 [lint.isort]
 known-first-party = ["geopulse"]
