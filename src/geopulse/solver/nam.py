@@ -56,13 +56,16 @@ References
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 from loguru import logger
 
 from geopulse.exceptions import ConvergenceError, DataError, ShapeMismatchError
 from geopulse.solver.base import Solver, SolverResult
+
+if TYPE_CHECKING:  # pragma: no cover
+    from geopulse.network.base import ConductorNetwork
 
 __all__ = ["NAMSolver", "solve_nam"]
 
@@ -207,7 +210,7 @@ class NAMSolver(Solver):
 
     def solve(
         self,
-        network,
+        network: ConductorNetwork,
         network_admittance: np.ndarray,
         earthing_impedance: np.ndarray,
         thevenin_voltages: np.ndarray,

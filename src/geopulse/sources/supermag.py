@@ -99,7 +99,7 @@ class SuperMAGSource(BFieldSource):
         self.file_path = file_path
         self.iaga = iaga.upper() if iaga else None
 
-    def load(
+    def load(  # noqa: C901 — SuperMAG CSV format varies enough that consolidating the ingest here beats splitting.
         self,
         start_s: float = -np.inf,
         end_s: float = np.inf,

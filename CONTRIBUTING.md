@@ -43,7 +43,28 @@ refactor(network): extract Node/Branch dataclasses to base.py
 chore(ci): add Python 3.13 to test matrix
 ```
 
-Types: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `perf`, `build`, `ci`.
+**Allowed types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`,
+`test`, `build`, `ci`, `chore`, `revert`.
+
+**Title length:** ≤ 72 characters. Anything longer belongs in the body.
+
+**Enforcement — two levels:**
+
+- **Locally**, the `gitlint-soft` hook (see [Guardrail hooks
+  survival guide](#guardrail-hooks--plain-english-survival-guide))
+  runs on `commit-msg` and **warns** on non-conforming titles but
+  never blocks. This lets first-time contributors commit quickly
+  without wrestling `type(scope): summary` mechanics.
+- **In CI**, the `Lint` job in
+  [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs
+  `gitlint --commits base..HEAD` in **hard** mode on every PR. A
+  malformed title on any branch commit blocks the merge. Fix by
+  amending / rebasing the offending commit, then re-push.
+
+Fixup commits — `git commit --fixup=<sha>` — are ignored by both
+hooks (they're auto-squashed on rebase). Merge, revert, and squash
+commits are ignored too. So you only need to think about titles for
+"real" commits.
 
 ## Pull Request Checklist
 
@@ -77,19 +98,86 @@ pre-commit run --all-files                # warm caches, verify everything green
 
 After this, every `git commit` runs the `.pre-commit-config.yaml` gates:
 
-| Hook | Catches |
-|---|---|
-| `ruff` (with `--fix`) | Lint issues (auto-fixes many) |
-| `ruff-format` | Formatting differences |
-| `trailing-whitespace` | Stray trailing spaces |
-| `end-of-file-fixer` | Missing terminal newline |
-| `check-yaml` / `check-toml` | Config-file syntax errors |
-| `check-added-large-files` | Accidental commits > 500 KB |
-| `mypy` (on `src/geopulse/`) | Type errors |
+| Hook | Stage | Catches |
+|---|---|---|
+| `ruff` (with `--fix`) | pre-commit | Lint issues (auto-fixes many): style, imports, naming, complexity, docstring format, **type annotations on public functions** |
+| `ruff-format` | pre-commit | Formatting differences |
+| `trailing-whitespace` | pre-commit | Stray trailing spaces |
+| `end-of-file-fixer` | pre-commit | Missing terminal newline |
+| `check-yaml` / `check-toml` | pre-commit | Config-file syntax errors |
+| `check-added-large-files` | pre-commit | Accidental commits > 500 KB |
+| `mypy` (on `src/geopulse/`) | pre-commit | Type errors |
+| `interrogate` | pre-commit | Docstring coverage < 85 % anywhere in `src/geopulse/` |
+| `pylint-duplicate-code` | pre-commit | Copy-pasted blocks ≥ 15 lines inside `src/geopulse/` (only that; nothing else pylint would flag) |
+| `check-no-version-drift` | pre-commit | Live version literal outside `_version.py` / `CHANGELOG.md` |
+| `gitlint-soft` | commit-msg | **Warn only.** Nudges the commit message toward Conventional Commits; never blocks the commit locally (CI enforces — see below) |
+| `clean-build-artefacts` | pre-commit | Strips `dist/`, `build/`, cache dirs from the working tree |
+| `build-wheel-check` | **pre-push** | `python -m build` still succeeds (catches packaging breakage) |
+| `build-docs-check` | **pre-push** | `sphinx-build` still succeeds |
+
+Enable the `commit-msg` and `pre-push` hooks the first time:
+
+```bash
+pre-commit install --hook-type commit-msg     # for gitlint-soft
+pre-commit install --hook-type pre-push       # for the wheel/docs smoke checks
+```
 
 If a hook fails, fix the issue (or accept the auto-fix), `git add`, and
 re-`git commit`. Bypass in emergencies with `git commit --no-verify` —
-but a red hook is usually the hook doing its job.
+but a red hook is usually the hook doing its job, and CI runs the same
+checks so the bypass just moves the failure downstream.
+
+### Guardrail hooks — plain-English survival guide
+
+Extra background on the non-obvious ones:
+
+**`ruff ANN` rules — public-function type annotations.** GeoPulse
+claims `Typing :: Typed` in `pyproject.toml` classifiers and ships a
+`py.typed` marker; the `ANN` rules enforce that every public function
+in `src/geopulse/` actually carries type hints for its arguments and
+return type. **`ANN401` (bans `typing.Any`) is project-wide ignored**
+because a handful of patterns genuinely need it: `dict[str, Any]`
+config payloads, `**kwargs: Any` passthrough, and the `Uncertain[T]`
+generic wrapper's sample-store. **Stub modules** (files that only
+raise `NotImplementedYetError`) are per-file exempted in `ruff.toml`
+— when the real implementation lands, drop the exemption in the
+same PR. Downstream users benefit from complete type hints for IDE
+completion and Sphinx autodoc type inference.
+
+**`interrogate` — docstring coverage.** Fails if the percentage of
+docstring-carrying public functions/classes/methods in `src/geopulse/`
+drops below **85 %**. On failure it prints a per-file table showing
+exactly which files pulled the average down; add the missing docstring
+and re-commit. Do NOT add `# noqa` — write the docstring, it's cheap
+and load-bearing for RTD.
+
+**`pylint-duplicate-code` — copy-paste detector.** Fails if it finds
+≥ 15 consecutive lines that appear in two places inside
+`src/geopulse/`. Scoped tight: doesn't check tests (they *should*
+share fixtures), doesn't check examples (case-studies legitimately
+share ingest boilerplate). If it fires, refactor the shared block
+into a helper — usually a small function or dataclass method. The
+threshold (15) tolerates the natural π-section assembly patterns
+that repeat between network subclasses; if you legitimately need to
+share more, put it in a shared helper module.
+
+**`check-no-version-drift`.** Fails if the current live version
+(read from `_version.py`) appears anywhere except `_version.py`
+itself and `CHANGELOG.md`. See the [Version-drift
+guardrail](#version-drift-guardrail-check-no-version-drift) section
+below for the full policy.
+
+**`gitlint-soft` — commit message.** Runs on `commit-msg`. Prints a
+warning if the commit title doesn't match Conventional Commits
+(`type(scope): summary`, ≤ 72 chars, one of the allowed types),
+**but never blocks the commit locally.** CI runs the same check in
+HARD mode and *will* block the PR merge if any commit on the branch
+has a malformed title — so the local warning is a friendly heads-up,
+not a wall. See [Commit Conventions](#commit-conventions).
+
+Keep `geopulse-dev` active whenever you commit; the hook script needs the
+env's `pre-commit` on `PATH`. Refresh pinned hook versions occasionally
+with `pre-commit autoupdate` (produces one PR bumping the pins).
 
 Keep `geopulse-dev` active whenever you commit; the hook script needs the
 env's `pre-commit` on `PATH`. Refresh pinned hook versions occasionally

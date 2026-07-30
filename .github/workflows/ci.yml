@@ -9,16 +9,42 @@ jobs:
     name: Lint (ruff + mypy)
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth: 0 gives gitlint full history so it can walk every
+      # PR commit AND correctly identify the auto-generated merge commit
+      # as a merge (shallow clones hide the parent-count that classifies
+      # a merge, breaking `git rev-list --no-merges`).
       - uses: actions/checkout@v7
+        with: {fetch-depth: 0}
       - uses: actions/setup-python@v7
         with: {python-version: "3.12"}
-      - run: pip install ruff mypy
+      - run: pip install ruff mypy interrogate pylint gitlint
       - run: ruff check src/ tests/
       - run: ruff format --check src/ tests/
       - run: mypy src/geopulse/ --ignore-missing-imports
       # Version-drift guard: same script pre-commit runs, executed here so
       # anyone bypassing pre-commit with --no-verify still gets caught.
       - run: python scripts/check_no_version_drift.py
+      # Docstring coverage — must stay >= 85 % across src/geopulse.
+      - run: interrogate -v --fail-under=85 --ignore-init-method --ignore-magic --ignore-nested-functions src/geopulse/
+      # Duplicate-code (pylint R0801) — narrowly scoped by .pylintrc.
+      - run: pylint --rcfile=.pylintrc src/geopulse/
+      # gitlint HARD mode: enforce Conventional Commits on every commit in
+      # this branch. On pull_request runs GitHub checks out a synthetic
+      # merge commit ("Merge <sha> into <sha>") which would itself fail
+      # the CC format — enumerate real (non-merge) commits and check
+      # each one, which sidesteps the merge-commit issue without needing
+      # to fetch the PR head as a named ref.
+      - name: gitlint (Conventional Commits — hard)
+        run: |
+          if [ -n "$GITHUB_BASE_REF" ]; then
+            git fetch origin "$GITHUB_BASE_REF" --depth=50
+            for sha in $(git rev-list --no-merges "origin/${GITHUB_BASE_REF}..HEAD"); do
+              echo "== gitlint on $sha =="
+              gitlint --commit "$sha" || exit 1
+            done
+          else
+            gitlint --commits "HEAD~1..HEAD"
+          fi
 
   test:
     name: Test (${{ matrix.os }}, py${{ matrix.python-version }})

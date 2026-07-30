@@ -92,7 +92,7 @@ def _parse_time(date_str: str, time_str: str) -> float:
     return dt.timestamp()
 
 
-def read_iaga2002(path: str | Path) -> Iaga2002File:
+def read_iaga2002(path: str | Path) -> Iaga2002File:  # noqa: C901 — IAGA-2002 has many optional sections; keeping the parser in one function trades complexity for locality
     """Read an IAGA-2002 file.
 
     Parameters

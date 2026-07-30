@@ -1,0 +1,32 @@
+# pylint is used in GeoPulse ONLY for its duplicate-code checker.
+# Everything else pylint would normally complain about is deliberately
+# disabled — ruff + mypy + pydoclint already cover style, correctness,
+# type safety, and docstring consistency.
+#
+# Rationale: scientific Python codebases have many patterns (e.g. per-
+# segment equivalent-π assembly loops) that pylint flags as spurious
+# style issues but which are load-bearing for physics readability.
+# Enabling all of pylint would flood contributors with false-positives
+# and hide the one thing we DO care about — accidentally-copy-pasted
+# code blocks.
+
+[MASTER]
+# Only src/geopulse/ is checked — tests deliberately reuse patterns, and
+# examples/ has case-study boilerplate that shouldn't count as "duplicate".
+# The pre-commit hook restricts the argv to `src/geopulse/` explicitly.
+
+[MESSAGES CONTROL]
+disable = all
+enable  = duplicate-code
+
+[SIMILARITIES]
+# Number of consecutive lines that must match before pylint flags a
+# duplicate. Default (4) is too aggressive for scientific code where
+# 4-line pi-section loops repeat legitimately across modules. 15 is a
+# comfortable threshold — anything at or above that length is genuine
+# copy-paste rather than a shared idiom.
+min-similarity-lines  = 15
+ignore-comments       = yes
+ignore-docstrings     = yes
+ignore-imports        = yes
+ignore-signatures     = yes

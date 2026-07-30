@@ -2,6 +2,11 @@
 # behaviour (fast lint/format/type checks on every commit).
 default_stages: [pre-commit]
 
+# Install with:
+#   pre-commit install                     # pre-commit stage (default)
+#   pre-commit install --hook-type commit-msg   # for gitlint
+#   pre-commit install --hook-type pre-push     # for the wheel/docs smoke checks
+
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Pinned to match the dev env (local ruff is 0.16.0). Bump both together
@@ -29,6 +34,28 @@ repos:
         files: ^src/geopulse/
         args: [--ignore-missing-imports]
 
+  # ----- Guardrails: docstring coverage + signature/docstring consistency -
+  #
+  # interrogate: fails if docstring coverage across src/ drops below the
+  # threshold. Reports a per-file table on failure so you can see exactly
+  # which new function is missing a docstring.
+  - repo: https://github.com/econchick/interrogate
+    rev: 1.7.0
+    hooks:
+      - id: interrogate
+        args: [-v, --fail-under=85, --ignore-init-method, --ignore-magic,
+               --ignore-nested-functions, src/geopulse/]
+        pass_filenames: false
+        stages: [pre-commit]
+
+  # pydoclint was evaluated in this PR but is deliberately NOT enabled.
+  # It insists on "type hints in signature XOR docstring", but the project
+  # follows numpy/scipy convention: hints go in BOTH the signature (for
+  # tools) and the docstring (for humans). Pydoclint flagged ~50 items as
+  # DOC111 "docstring has type hints" — that's not drift, it's the
+  # convention. Revisit when a numpy-native docstring/signature drift
+  # checker (e.g. numpydoc-validation with per-rule opt-in) matures.
+
   # ----- Local hooks (project-specific shell commands) --------------------
   - repo: local
     hooks:
@@ -43,6 +70,32 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [pre-commit]
+
+      # 0.5 Duplicate-code check: narrowly-scoped pylint invocation that
+      # ONLY runs the duplicate-code (R0801) checker on src/geopulse/.
+      # See .pylintrc for the threshold rationale. Uses the current env
+      # (needs pylint from [dev]).
+      - id: pylint-duplicate-code
+        name: pylint duplicate-code (src/geopulse/ only)
+        entry: pylint --rcfile=.pylintrc src/geopulse/
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      # 0.7 gitlint (SOFT mode): commit-message convention warning. This
+      # hook ALWAYS exits 0 — it prints the gitlint output as a warning
+      # but never blocks the commit. CI runs the same check in HARD mode
+      # (see .github/workflows/ci.yml) so malformed messages can't reach
+      # main, but a first-time contributor can commit locally without
+      # tripping over Conventional Commits mechanics on day one.
+      - id: gitlint-soft
+        name: gitlint (commit message — warn only, CI enforces)
+        entry: bash -c 'gitlint --msg-filename "$1" || (echo; echo "⚠️  Commit message may not match Conventional Commits — CI will enforce."; echo "   See CONTRIBUTING.md § Commit message conventions."); exit 0'
+        language: system
+        stages: [commit-msg]
+        always_run: true
 
       # 1. Cleanup: strip build artefacts before every commit. All already
       # gitignored so this only affects the working tree — keeps `ls` and
