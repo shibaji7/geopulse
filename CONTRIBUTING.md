@@ -196,24 +196,104 @@ silently ship a `MINOR` that should have been `MAJOR`.
 
 ### Where the version number lives
 
-- `src/geopulse/_version.py` — single source of truth for
-  `__version__`.
-- `pyproject.toml` `[project] version` — mirror. Bump in the same
-  commit.
+**Single source of truth:** `src/geopulse/_version.py` — the string
+literal assigned to `__version__` is the version. Nothing else
+duplicates it.
+
+- `pyproject.toml` declares `dynamic = ["version"]` and reads
+  `__version__` at build time via `[tool.setuptools.dynamic]`. **Do
+  not** hand-edit a version string there — there is none to edit.
+- `docs/conf.py` imports `__version__` directly (no fallback: if the
+  import breaks, the Sphinx build fails loudly rather than publishing
+  a stale label to RTD).
 - `CHANGELOG.md` — add a `[X.Y.Z-suffix] - YYYY-MM-DD` header at the
-  top of the file when you bump.
+  top of the file when you bump. Historical entries stay forever
+  (they're the release archive).
+
+### Version-drift guardrail (`check-no-version-drift`)
+
+A pre-commit hook + CI step runs
+[`scripts/check_no_version_drift.py`](scripts/check_no_version_drift.py)
+on every commit and every pipeline run. It fails if the current live
+version literal (read from `_version.py`) appears anywhere except
+`_version.py` itself or `CHANGELOG.md`.
+
+**Why:** it's easy to copy the current version into a docs example
+("try `pip install geopulse==0.2.0a1`") and then forget to update
+that example on the next bump. The hook catches that at commit time.
+
+**Where it runs:**
+
+- **Pre-commit** — `.pre-commit-config.yaml` → `check-no-version-drift`
+  in the `pre-commit` stage. Blocks the commit if any file in
+  `README.md`, `ROADMAP.md`, `docs/**/*.md`, `docs/**/*.rst`,
+  `docs/conf.py`, or `pyproject.toml` contains the live version.
+- **CI** — same script runs as an extra step in the `Lint (ruff +
+  mypy)` job in [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+  Catches anyone who bypassed pre-commit with `--no-verify`.
+
+**When it fires, you'll see:**
+
+```
+check-no-version-drift: found 1 hardcoded live-version literal(s)
+  README.md:142: geopulse-0.2.0a1 is the current release
+
+The live version '0.2.0a1' must appear only in _version.py and
+CHANGELOG.md. Either remove the literal above, or add the file to
+the ALLOWED set in scripts/check_no_version_drift.py with a comment
+explaining why the waiver is safe.
+```
+
+**How to fix:** almost always, rewrite the offending line to not
+name a specific version. Preferred patterns:
+
+- Instead of `pip install geopulse==0.2.0a1` → `pip install geopulse`
+  (users get whatever PyPI serves as latest).
+- Instead of `geopulse 0.2.0a1 supports …` → `GeoPulse supports …`
+  (drop the version qualifier — the current version is on the PyPI
+  badge above the fold).
+- Instead of a hardcoded wheel URL → point at
+  `/releases/latest` and let the user pick.
+
+**When a waiver is genuinely needed:** add the file path to the
+`ALLOWED` set at the top of
+[`scripts/check_no_version_drift.py`](scripts/check_no_version_drift.py)
+in the *same PR* that introduces the literal, with an inline comment
+explaining why the literal must live there and why keeping it
+in-sync manually is acceptable. Adding to `ALLOWED` is a real
+decision; think of it like adding a `# noqa` — sometimes right,
+never accidental.
+
+**Limitations:** the check only defends against the *current* live
+version leaking. It does *not* catch someone hardcoding a *different*
+version string (e.g. writing `0.5.0` into README while `_version.py`
+is still `0.2.0a1`). Catching that would need per-line waiver
+markers to avoid false-positives on `ROADMAP.md` milestone labels
+and `CONTRIBUTING.md` illustrative examples. If that becomes a real
+problem, extend the script with a `<!-- version-check: allow -->`
+inline convention.
 
 ## Release Process
 
 Under the current model, releases are cut directly from `main`:
 
-1. Bump `_version.py` and `pyproject.toml` in a single PR — pick the
-   next tag per the rules in [Versioning Conventions](#versioning-conventions).
-2. Add a `[X.Y.Z] - YYYY-MM-DD` entry at the top of `CHANGELOG.md`.
-3. Merge to `main`.
+1. Bump the version in `src/geopulse/_version.py` (single-line edit)
+   — pick the next tag per the rules in
+   [Versioning Conventions](#versioning-conventions). Nothing else
+   needs to be touched: `pyproject.toml` reads dynamically at build
+   time, `docs/conf.py` reads at Sphinx-build time.
+2. Add a `[X.Y.Z] - YYYY-MM-DD` entry at the top of `CHANGELOG.md`
+   summarising the release.
+3. Merge the bump PR to `main`.
 4. Tag: `git tag -a vX.Y.Z -m "..."` then `git push origin --tags`.
 5. Promote to a GitHub Release: `gh release create vX.Y.Z --notes-from-tag`
    (add `--prerelease` for alphas/betas/RCs).
+
+The OIDC-based publish workflow at
+[`.github/workflows/release.yml`](.github/workflows/release.yml)
+picks up the `v*` tag, builds sdist + wheel (both stamped with the
+version read from `_version.py`), and publishes to PyPI without any
+long-lived API tokens.
 
 Once the project adopts gitflow (see [Branch Strategy](#branch-strategy)),
 this will switch to `release/vX.Y` stabilisation branches with
