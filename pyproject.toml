@@ -1,15 +1,13 @@
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
-# TODO(PI): spec Section 4.1 lists build-backend = "setuptools.backends._legacy:_Backend"
-# which does not resolve in current setuptools. Using the canonical build_meta backend.
-# Also, spec pairs dynamic version with setuptools-scm; that requires a git tag on disk.
-# For Phase 0 scaffold we use a static version pinned to _version.py to guarantee
-# `pip install -e .` works before the first tag is cut. Switch to dynamic + scm at v0.1.
 
 [project]
 name = "geopulse"
-version = "0.1.0a3"
+# Version is derived at build time from src/geopulse/_version.py — see
+# [tool.setuptools.dynamic] below. Bumping the version means editing
+# _version.py ONLY; nothing else needs to change.
+dynamic = ["version"]
 description = "Unified engine for geomagnetically induced currents across grounded infrastructure"
 readme = "README.md"
 license = "Apache-2.0"
@@ -121,6 +119,12 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 geopulse = ["py.typed"]
+
+[tool.setuptools.dynamic]
+# Single source of truth for the version. Bumping src/geopulse/_version.py
+# is the ONLY step needed to change the released version; setuptools reads
+# __version__ at build time and stamps it into the wheel / sdist metadata.
+version = {attr = "geopulse._version.__version__"}
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

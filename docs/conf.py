@@ -15,10 +15,11 @@ author = "Shibaji Chakraborty, David Boteler"
 copyright = "2026, Shibaji Chakraborty"
 
 # Pull version from the package itself so docs stay in sync with releases.
-try:
-    from geopulse._version import __version__ as release
-except ImportError:  # pragma: no cover
-    release = "0.1.0a0"
+# No fallback: if the import fails, the docs build must fail loudly. A
+# silently-shipped stale version on RTD is worse than a broken build.
+# E402 waived because sys.path.insert above must run before this import.
+from geopulse._version import __version__ as release  # noqa: E402
+
 version = ".".join(release.split(".")[:2])
 
 # --- Extensions ----------------------------------------------------------

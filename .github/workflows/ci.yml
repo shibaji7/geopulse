@@ -16,6 +16,9 @@ jobs:
       - run: ruff check src/ tests/
       - run: ruff format --check src/ tests/
       - run: mypy src/geopulse/ --ignore-missing-imports
+      # Version-drift guard: same script pre-commit runs, executed here so
+      # anyone bypassing pre-commit with --no-verify still gets caught.
+      - run: python scripts/check_no_version_drift.py
 
   test:
     name: Test (${{ matrix.os }}, py${{ matrix.python-version }})
