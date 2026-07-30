@@ -111,7 +111,10 @@ and CLI.*
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch model, commit
-conventions, PR checklist, and coding standards.
+conventions, versioning conventions, PR checklist, and coding
+standards. See [ROADMAP.md](ROADMAP.md) for what is done, in flight,
+planned, or open for contribution — with per-release tentative
+timeline and per-module status.
 
 ## Citation
 
@@ -128,4 +131,11 @@ intended for use by industry partners as well as academics.
 ## Acknowledgments
 
 Principal Investigator: **Shibaji Chakraborty** (ERAU / CSAR).
-Primary Collaborator: **David Boteler** (NRCan Geomagnetism).
+Core team: **Xueling Shi** and **Michael Hartinger** — architecture
+and physics review, ionospheric / magnetospheric coupling.
+Primary Collaborator: **David Boteler** (NRCan Geomagnetism) —
+methodology (NAM/LPm, DSTL, railway signalling), reference
+implementations, benchmark validation.
+
+Additional contributors are listed in the GitHub commit history and,
+where they contributed a full work-package, in [ROADMAP.md](ROADMAP.md).

@@ -32,6 +32,18 @@ repos:
   # ----- Local hooks (project-specific shell commands) --------------------
   - repo: local
     hooks:
+      # 0. Version-drift check: fail if the current live version literal
+      # (read from src/geopulse/_version.py) appears anywhere it shouldn't.
+      # The only allowed places are _version.py itself and CHANGELOG.md.
+      # See scripts/check_no_version_drift.py for the full rationale.
+      - id: check-no-version-drift
+        name: check no hardcoded version literals
+        entry: python scripts/check_no_version_drift.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
       # 1. Cleanup: strip build artefacts before every commit. All already
       # gitignored so this only affects the working tree — keeps `ls` and
       # `git status` clean without changing any tracked file.

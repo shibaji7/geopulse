@@ -32,11 +32,19 @@ conda activate geopulse-dev
 pre-commit install
 ```
 
-**4. Pre-built wheel from the latest release**:
+**4. Pre-built wheel from a specific release** (e.g. for reproducing
+a paper's exact results):
+
+Visit the [releases page](https://github.com/shibaji7/geopulse/releases/latest)
+and pick the `.whl` matching your Python version, then:
 
 ```bash
-pip install https://github.com/shibaji7/geopulse/releases/download/v0.1.0a0/geopulse-0.1.0a0-py3-none-any.whl
+pip install ./geopulse-<version>-py3-none-any.whl
 ```
+
+For the general case, `pip install geopulse` gets you the same wheel
+served from PyPI — no need to hand-download unless you want to pin
+to a build older than what PyPI serves as "latest".
 
 Available optional extras: `[data]`, `[viz]`, `[earth3d]`, `[spice]`,
 `[service]`, `[dev]`, `[all]`.
