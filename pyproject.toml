@@ -141,37 +141,26 @@ filterwarnings = [
 [tool.coverage.run]
 source = ["src/geopulse"]
 branch = true
+# Kept short by design. Pure "raise NotImplementedYetError" stubs are
+# handled by the exclude_lines rule below (no need to also omit the
+# whole file). Only file-level omits that stay here are:
+#   * _version.py             — trivially uninteresting (version literal),
+#   * earth/unstructured_3d.py — will grow into real physics; measuring
+#                                 partial coverage while it is being
+#                                 written would be misleading,
+#   * solver/sparse.py        — same story (real math will land in
+#                                 stages, not one big drop).
 omit = [
     "src/geopulse/_version.py",
-    # Stub modules that intentionally raise NotImplementedYetError have no
-    # meaningful lines to cover.
-    "src/geopulse/devices/rectifier.py",
-    "src/geopulse/devices/cp_unit.py",
-    "src/geopulse/devices/harmonics.py",
-    "src/geopulse/efield/coastal.py",
-    "src/geopulse/efield/convolution.py",
-    "src/geopulse/efield/nonuniform.py",
-    "src/geopulse/network/cable.py",
-    "src/geopulse/network/railway.py",
-    "src/geopulse/network/graph.py",
-    "src/geopulse/network/thevenin.py",
-    "src/geopulse/solver/mna.py",
-    "src/geopulse/solver/pyspice_bridge.py",
-    "src/geopulse/solver/sparse.py",
-    "src/geopulse/sources/swmf_mhd.py",
-    "src/geopulse/metrics/*.py",
-    "src/geopulse/viz/*.py",
-    "src/geopulse/uq/distributions.py",
-    "src/geopulse/uq/montecarlo.py",
-    "src/geopulse/uq/sensitivity.py",
-    "src/geopulse/io/geojson.py",
     "src/geopulse/earth/unstructured_3d.py",
+    "src/geopulse/solver/sparse.py",
 ]
 
 [tool.coverage.report]
 # Fail the coverage job if line coverage of the implemented modules drops
-# below this floor. Start conservative; tighten as tests grow.
-fail_under = 75
+# below this floor. Raised from 75 -> 80 after the omit cleanup; current
+# measured coverage on `main` sits at ~85% so this leaves a small headroom.
+fail_under = 80
 show_missing = true
 skip_covered = false
 exclude_lines = [
