@@ -5,6 +5,27 @@ All notable changes to GeoPulse will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **Minimum numpy raised from `>=1.24` to `>=2.0`** (`pyproject.toml`,
+  `environment.yml`, `environment-minimal.yml`). Fixes issue #21:
+  `ResistiveBlocker.inject_gic` calls `numpy.trapezoid`, which was
+  introduced in numpy 2.0. The previous floor advertised compatibility
+  with numpy 1.24–1.26 but the device model crashed at runtime on
+  those versions. Bumping the floor removes the false advertisement and
+  matches the "no back-compat shims when we can just change the code"
+  project preference.
+
+### Fixed
+- `network.helpers.evaluate_field_at_branch_midpoints` no longer
+  produces `NaN` for every branch when *any* node in the network has
+  `NaN` coordinates (issue #23). The local-projection origin now
+  averages over only the finite-coord nodes, and branches touching a
+  `NaN`-coord endpoint sample as `(0, 0)` — the right physics for a
+  zero-length degenerate branch. Three regression tests cover the
+  poisoned-mean, degenerate-branch, and all-NaN-network cases.
+
 ## [0.2.0a1] - 2026-07-30
 
 Opens the v0.2 alpha train. First feature drop is a coordinated set

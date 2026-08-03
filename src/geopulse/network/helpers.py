@@ -399,20 +399,35 @@ def evaluate_field_at_branch_midpoints(
 
     node_by_id = {n.node_id: n for n in nodes}
 
-    # Local projection origin = mean of all node coordinates.
-    lat0 = float(np.mean([n.latitude_deg for n in nodes]))
-    lon0 = float(np.mean([n.longitude_deg for n in nodes]))
+    # Local projection origin = mean of node coordinates, computed only
+    # over nodes with finite lat/lon so a single NaN-coord node elsewhere
+    # in the network cannot poison the origin (and therefore every
+    # per-branch sample). Branches touching a NaN-coord endpoint are
+    # zero-length degenerates (co-located with parent bus) and get
+    # (0, 0) — no induced voltage is the right physics for a zero-length
+    # branch.
+    lats = np.array([n.latitude_deg for n in nodes], dtype=np.float64)
+    lons = np.array([n.longitude_deg for n in nodes], dtype=np.float64)
+    finite = np.isfinite(lats) & np.isfinite(lons)
+    if not np.any(finite):
+        raise DataError(
+            "network has no node with finite (lat, lon); cannot build projection origin"
+        )
+    lat0 = float(np.mean(lats[finite]))
+    lon0 = float(np.mean(lons[finite]))
     m_per_deg_lat = meridian_radius_m(lat0) * np.pi / 180.0
     m_per_deg_lon = prime_vertical_radius_m(lat0) * float(np.cos(np.radians(lat0))) * np.pi / 180.0
 
-    ex = np.empty(len(branches), dtype=np.float64)
-    ey = np.empty(len(branches), dtype=np.float64)
+    ex = np.zeros(len(branches), dtype=np.float64)
+    ey = np.zeros(len(branches), dtype=np.float64)
 
     for k, br in enumerate(branches):
         a = node_by_id[br.from_node]
         b = node_by_id[br.to_node]
         lat_mid = 0.5 * (a.latitude_deg + b.latitude_deg)
         lon_mid = 0.5 * (a.longitude_deg + b.longitude_deg)
+        if not (np.isfinite(lat_mid) and np.isfinite(lon_mid)):
+            continue  # zero-length degenerate branch → leave (0, 0)
         x_km = (lon_mid - lon0) * m_per_deg_lon / 1000.0
         y_km = (lat_mid - lat0) * m_per_deg_lat / 1000.0
         val = field_fn(float(x_km), float(y_km))

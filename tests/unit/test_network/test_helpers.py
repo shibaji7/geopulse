@@ -227,3 +227,56 @@ class TestEvaluateFieldAtBranchMidpoints:
         net = _StubNet(nodes, [])
         with pytest.raises(DataError, match="zero branches"):
             evaluate_field_at_branch_midpoints(net, lambda x, y: (0.0, 0.0))
+
+    def test_nan_coord_node_does_not_poison_finite_branches(self):
+        # Regression for issue #23: a NaN-coord node elsewhere in the
+        # network must NOT poison the local-projection origin, so a
+        # branch between two finite nodes still gets sampled correctly.
+        nodes = [
+            Node("A", latitude_deg=40.0, longitude_deg=-90.0),
+            Node("B", latitude_deg=40.0, longitude_deg=-89.5),
+            Node("C", latitude_deg=float("nan"), longitude_deg=float("nan")),  # NaN elsewhere
+        ]
+        branches = [
+            Branch("AB", from_node="A", to_node="B", resistance_Ohm=1.0, length_m=1.0),
+        ]
+        net = _StubNet(nodes, branches)
+        ex, ey = evaluate_field_at_branch_midpoints(net, lambda x, y: (1e-3, 2e-3))
+        assert np.isfinite(ex).all()
+        assert np.isfinite(ey).all()
+        assert ex[0] == pytest.approx(1e-3)
+        assert ey[0] == pytest.approx(2e-3)
+
+    def test_branch_touching_nan_endpoint_returns_zero(self):
+        # A branch whose endpoint has NaN coords is a zero-length
+        # degenerate (co-located with parent bus); the right physics
+        # is zero induced voltage, so the sample must be (0, 0) and
+        # never NaN.
+        nodes = [
+            Node("A", latitude_deg=40.0, longitude_deg=-90.0),
+            Node("B", latitude_deg=40.0, longitude_deg=-89.5),
+            Node("C", latitude_deg=float("nan"), longitude_deg=float("nan")),
+        ]
+        branches = [
+            Branch("AB", from_node="A", to_node="B", resistance_Ohm=1.0, length_m=1.0),
+            Branch("BC", from_node="B", to_node="C", resistance_Ohm=1.0, length_m=1.0),
+        ]
+        net = _StubNet(nodes, branches)
+        ex, ey = evaluate_field_at_branch_midpoints(net, lambda x, y: (5.0, 5.0))
+        assert np.isfinite(ex).all()
+        assert np.isfinite(ey).all()
+        # Finite-endpoint branch samples the field; NaN-endpoint branch is 0.
+        assert ex[0] == pytest.approx(5.0)
+        assert ex[1] == 0.0
+        assert ey[1] == 0.0
+
+    def test_all_nan_network_raises(self):
+        # If every node has NaN coords the origin cannot be built.
+        nodes = [
+            Node("A", latitude_deg=float("nan"), longitude_deg=float("nan")),
+            Node("B", latitude_deg=float("nan"), longitude_deg=float("nan")),
+        ]
+        branches = [Branch("AB", from_node="A", to_node="B", resistance_Ohm=1.0, length_m=1.0)]
+        net = _StubNet(nodes, branches)
+        with pytest.raises(DataError, match="finite"):
+            evaluate_field_at_branch_midpoints(net, lambda x, y: (0.0, 0.0))
