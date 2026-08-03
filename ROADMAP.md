@@ -37,7 +37,7 @@ suffix.
 | Milestone | Scope highlight | Pre-release phases | Target |
 |-----------|-----------------|--------------------|--------|
 | **v0.1.0** (current alpha) | Base engine: sources, 1-D earth, plane-wave E, NAM/LPm solver, power-grid + pipeline networks, transformer thermal, IAGA/HDF5 I/O, Horton benchmark <1 % | `0.1.0aN` alphas (live) → `0.1.0b1` → `0.1.0` | end Q3 2026 |
-| **v0.2.0** | Merge the 9 open PRs. Adds: viz stacked-panel plotter, GIC statistics + exceedance, FFT harmonics + IEEE 519 THD, MNA (ideal V-sources), RailwayNetwork DSTL, issue templates, Gannon-day FRD case study, coverage cleanup | `0.2.0a1..3` → `0.2.0b1..2` → `0.2.0rc1` → `0.2.0` | Q4 2026 |
+| **v0.2.0** | Merge the open PRs. Adds: viz stacked-panel plotter, GIC statistics + exceedance, FFT harmonics + IEEE 519 THD, MNA (ideal V-sources), RailwayNetwork DSTL, issue templates, Gannon-day FRD case study, coverage cleanup, **network.helpers + devices.blocker + viz.network_map + viz.presets** (PR #17) | `0.2.0a1..3` → `0.2.0b1..2` → `0.2.0rc1` → `0.2.0` | Q4 2026 |
 | **v0.3.0** | CableNetwork (SCUBAS refactor) unlocks cases #20 (TAT-8) + #21 (SCUBAS Gannon). Model-based `half_cycle_harmonics` with Walling & Khan curves. USGS physiographic 1-D Earth library. First journal-scale viz presets (JGR SpP / Space Weather). | `0.3.0a1..N` → `0.3.0b1..2` → `0.3.0rc1` → `0.3.0` | H1 2027 |
 | **v0.5.0** | Reactive-element MNA (companion models + trapezoidal integration). PySpice bridge for nonlinear transient. Structured 2-D FD MT Earth solver (replaces `CoastalCorrection2D` pragmatic stand-in). **SECS** driver (Weygand et al. 2011) producing 2-D `B(x,y,t)` from sparse magnetometer arrays, paired with `efield.nonuniform` for spatially-varying `E(x,y,t)`. Rectifier + cathodic-protection device models. | `0.5.0a1..N` → beta → rc → release | H2 2027 |
 | **v0.9.0** | 3-D Earth via ModEM / SimPEG wrapper. Uncertainty propagation (Monte Carlo + Sobol). Sparse solver for continent-scale grids. FastAPI service layer for hosted GIC hindcasts. | `0.9.0a` → `b` → `rc` → release | 2027–2028 |
@@ -61,23 +61,24 @@ releases.
 - **CI**: GitHub Actions, pytest matrix over Py 3.10–3.13, coverage
   gated at 75 % (rising to 80 % after PR #14).
 
-## In flight (open PRs)
+## Recently merged
 
-Ranked most-ready → least-ready. All isolated to their own branches.
+- ✅ **#8** (issue templates), **#14** (coverage cleanup + `fail_under=80`), **#16** (guardrails: interrogate + pylint dup + gitlint + ruff D/N/C901/ANN)
+
+## In flight (open PRs)
 
 | PR | Branch | What lands | Merge risk |
 |----|--------|------------|-----------|
 | [#6](https://github.com/shibaji7/geopulse/pull/6) | `feature/case-07-gannon-ingestion` | Real Gannon FRD IAGA-2002 case study | Clean |
-| [#7](https://github.com/shibaji7/geopulse/pull/7) | `feature/11-viz-timeseries` | `plot_timeseries` + `TimeSeriesPanel` | `pyproject.toml` conflict w/ #9, #10 |
-| [#8](https://github.com/shibaji7/geopulse/pull/8) | `feature/gh-issue-templates` | 4 issue-template forms | Clean |
-| [#9](https://github.com/shibaji7/geopulse/pull/9) | `feature/10-metrics-gic` | `summary_stats` + `exceedance_curve` | `pyproject.toml` conflict |
-| [#10](https://github.com/shibaji7/geopulse/pull/10) | `feature/12-devices-harmonics-thd` | FFT `extract_harmonics` + IEEE 519 THD | `pyproject.toml` conflict |
+| [#7](https://github.com/shibaji7/geopulse/pull/7) | `feature/11-viz-timeseries` | `plot_timeseries` + `TimeSeriesPanel` | Conflict w/ #17 on `viz/__init__.py`; trivial |
+| [#9](https://github.com/shibaji7/geopulse/pull/9) | `feature/10-metrics-gic` | `summary_stats` + `exceedance_curve` | `pyproject.toml` conflict w/ #10 |
+| [#10](https://github.com/shibaji7/geopulse/pull/10) | `feature/12-devices-harmonics-thd` | FFT `extract_harmonics` + IEEE 519 THD | Conflict w/ #17 on `devices/__init__.py`; trivial |
 | [#11](https://github.com/shibaji7/geopulse/pull/11) | `feature/half-cycle-harmonics-stub` | Model-based `half_cycle_harmonics` stub (blocked on W&K curves) | Clean |
-| [#12](https://github.com/shibaji7/geopulse/pull/12) | `feature/09-network-railway` | `RailwayNetwork` DSTL + bonded grounds | Trivial |
+| [#12](https://github.com/shibaji7/geopulse/pull/12) | `feature/09-network-railway` | `RailwayNetwork` DSTL + bonded grounds | Conflict w/ #17 on `network/__init__.py`; trivial |
 | [#13](https://github.com/shibaji7/geopulse/pull/13) | `feature/13-solver-mna` | `MNASolver` with ideal V-sources | Trivial |
-| [#14](https://github.com/shibaji7/geopulse/pull/14) | `feature/coverage-cleanup` | Trim omit block, raise fail_under to 80 %, add smoke-imports test | Clean |
+| **#17** (this PR) | `feature/core-additions` | `network.helpers` + `devices.blocker` + `viz.network_map` + `viz.presets` (with Level-2a) | Small `__init__.py` conflicts w/ #7, #10, #12; trivial |
 
-Merge order recommendation: **#8 → #14 → #6 → #12 → #13 → #7 → #10 → #9 → #11**. The `pyproject.toml` merge conflict between #7/#9/#10 is trivial (union of narrowing edits, ~10 s).
+Merge order recommendation: **#6 → #11 → #13 → #7 → #10 → #12 → #9 → #17**. Land #17 last so it rebases once on top of every module-family addition, rather than forcing all seven other PRs to rebase.
 
 ---
 
@@ -110,6 +111,7 @@ Merge order recommendation: **#8 → #14 → #6 → #12 → #13 → #7 → #10 �
 | `network.railway` (DSTL + bonded grounds) | 🟡 Partial (PR #12) | 0.2.0 | Cites Boteler 2021, Patterson 2023/2024; unblocks cases #16–#19 |
 | `network.cable` (SCUBAS refactor) | ⬛ Not touched | 0.3.0 | Unlocks cases #20 (TAT-8), #21 (SCUBAS Gannon) |
 | `network.graph` / `network.thevenin` | ⬛ Not touched | 0.5.0 | Shared topology / Thévenin helpers |
+| `network.helpers` (blocker / line-outage / add-tie mutations + per-branch field sampling) | ✅ Done (PR #17) | 0.2.0 | Post-hoc matrix mutations + spatial-field evaluator; used by hypothesis case studies |
 
 ### Circuit solvers
 
@@ -130,6 +132,7 @@ Merge order recommendation: **#8 → #14 → #6 → #12 → #13 → #7 → #10 �
 | `devices.half_cycle_harmonics` (model-based, W&K curves) | 🟡 Stub (PR #11) | 0.3.0 | API reserved; blocked on curve transcription |
 | `devices.rectifier` (full-wave under DC bias) | 🔵 Planned | 0.5.0 | Diode drop + harmonic content |
 | `devices.cp_unit` (cathodic protection response) | 🔵 Planned | 0.5.0 | Rectifier-station shifts from PSP swings; unblocks cases #9, #11, #15 |
+| `devices.blocker` (resistive DC-blocker instrumentation) | ✅ Done (PR #17) | 0.2.0 | Reports V / P / dissipated-energy at a blocker neutral; pairs with `network.helpers.apply_resistive_blocker` for the topology change |
 
 ### Metrics
 
@@ -153,26 +156,24 @@ for post-tweaks.
 |----------|--------|---------|-------|
 | `viz.timeseries.plot_timeseries` (stacked B / E / V / I) | 🟡 Partial (PR #7) | 0.2.0 | Elapsed-numeric OR UTC-datetime x-axis; auto legend; ax injection |
 | `viz.spectra.plot_spectrum` (log-log Bode-style) | 🔵 Planned | 0.3.0 | For impedance, harmonics, exceedance |
-| `viz.network_map` (cartopy substation / route map) | 🔵 Planned | 0.3.0 | Needs `[viz]` extra (cartopy, geopandas) |
-| `viz.presets.journal` (single-call figure exports for JGR / SW / Nature) | 🔵 Planned | 0.3.0 | See table below |
+| `viz.network_map.plot_network_map` (substation scatter + line segments) | ✅ Done (PR #17) | 0.2.0 | Matplotlib-only (no cartopy dep); ax injection; log-scale colour; dict-or-array `node_values` |
+| `viz.presets` (journal / poster / presentation registry + `apply_preset` + `save_figure`) | ✅ Done (PR #17) | 0.2.0 | 11 named presets; Level-1 warning + opt-in Level-2a mechanical fixes; see table below |
 
-#### Journal-scale figure presets (`viz.presets.journal`)
+#### Journal / venue figure presets (`viz.presets`)
 
-A single call converts a caller-built figure to a journal's exact
-column width, font stack, and DPI — no more per-paper matplotlib
-boilerplate.
+11-preset registry shipped in PR #17. Two-call API: `apply_preset(name)` before you build the figure sets rcParams globally, then `save_figure(fig, path, preset, ...)` resizes to the venue's exact column width and writes every required format. Backward-compat kwargs let opt-in Level-2a mechanical fixes (rotate ticks, pack legend, scale-up-tiny-text, tight-layout) run on save.
 
-| Preset | Column widths (mm) | Font stack | DPI | Format | Notes |
-|--------|-------------------|-----------|-----|--------|-------|
-| `jgr_space_physics` | 89 (single) / 183 (double) | Times-like serif, 8 pt caption | 300 min | PNG + PDF | AGU house style; supports 2-panel or 4-panel presets |
-| `space_weather` | 89 / 183 | Same AGU house style, 9 pt caption | 300 min | PNG + PDF | Ships the AGU LaTeX-compatible sizing |
-| `nature_1col` / `nature_2col` | 89 / 183 | Sans-serif, 7 pt caption | 300 min | PNG + PDF + EPS | Strict per Nature guide-for-authors |
-| `agu_talk` / `poster` | 254 (10 in), 4:3 | Sans-serif, 20 pt | 150 | PNG | For AGU/SM talks and posters |
-| `preprint` | Free size | Roman 10 pt | 200 | PDF | For arXiv / ESSOAr drafts |
+| Preset name(s) | Column width (mm) | Font stack | DPI | Formats | Notes |
+|---------------|-------------------|-----------|-----|---------|-------|
+| `jgr_1col` / `jgr_2col` | 89 / 183 | serif, 8 pt | 300 | PDF + PNG | AGU house style |
+| `sw_1col` / `sw_2col` | 89 / 183 | serif, 8 pt | 300 | PDF + PNG | Space Weather (AGU) |
+| `nature_1col` / `nature_2col` | 89 / 183 | sans-serif, 7 pt | 300 | PDF + PNG + EPS | Strict per Nature guide |
+| `ieee_1col` / `ieee_2col` | 88 / 181 | serif, 8 pt | 300 | PDF + PNG | PES / TPD conventions |
+| `agu_poster` | 254 (10 in), 4:3 | sans-serif, 20 pt | 150 | PNG | Poster panels |
+| `presentation` | 254 (10 in), 16:9 | sans-serif, 20 pt | 150 | PNG | Slide-deck content |
+| `preprint` | 170 (golden) | serif, 10 pt | 200 | PDF | arXiv / ESSOAr drafts |
 
-Each preset is an idempotent function: `journal.apply(fig, preset="jgr_space_physics", panel="single_column")` sets rcParams,
-resizes, retitles axes, and hands the figure back — safe to call
-repeatedly.
+Adding a new venue is a one-line dict entry in `PRESETS`. Level-2b heuristics (auto-promote 1col → 2col, auto-color-palette, semantic label placement) are explicitly out of scope — see the "not modelled" list in the module docstring for why.
 
 ### I/O
 
