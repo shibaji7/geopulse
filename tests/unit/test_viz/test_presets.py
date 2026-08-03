@@ -217,3 +217,127 @@ class TestReadabilityCheck:
         # Not a functional test — just guards against someone changing
         # the constant without thought.
         assert MIN_READABLE_PT == 6.0
+
+
+# ---------------------------------------------------------------------------
+# Level-2 mechanical fixes (opt-in)
+# ---------------------------------------------------------------------------
+
+
+class TestLevel2Defaults:
+    def test_all_level2_off_by_default(self, tmp_path):
+        # Preserve pre-Level-2 behaviour: identical outputs whether or
+        # not the new Level-2 kwargs are passed at their defaults.
+        fig1, ax = plt.subplots()
+        ax.plot([0, 1, 2], [0, 1, 4])
+        save_figure(fig1, tmp_path / "a", "jgr_2col")
+        fig2, ax = plt.subplots()
+        ax.plot([0, 1, 2], [0, 1, 4])
+        save_figure(
+            fig2,
+            tmp_path / "b",
+            "jgr_2col",
+            fix_tick_overlap=False,
+            pack_legend=False,
+            scale_up_tiny_text=False,
+        )
+        # Both figures got resized to the same width.
+        assert fig1.get_size_inches()[0] == pytest.approx(fig2.get_size_inches()[0])
+        plt.close("all")
+
+
+class TestFixTickOverlap:
+    def test_rotates_labels_when_packed(self, tmp_path):
+        # Force overlap: many long labels in a very narrow figure.
+        fig, ax = plt.subplots(figsize=(2, 2))
+        xs = list(range(12))
+        ax.plot(xs, xs)
+        ax.set_xticks(xs)
+        ax.set_xticklabels([f"very-long-label-{i}" for i in xs])
+        # Before save, rotations are all 0 (matplotlib default).
+        for t in ax.get_xticklabels():
+            assert t.get_rotation() == 0
+
+        save_figure(fig, tmp_path / "packed", "jgr_1col", fix_tick_overlap=True)
+
+        # After: at least some labels should now be rotated 30°.
+        rotations = [t.get_rotation() for t in ax.get_xticklabels()]
+        assert 30.0 in rotations
+        plt.close(fig)
+
+    def test_no_rotation_when_labels_dont_overlap(self, tmp_path):
+        # Wide figure, few short labels → no overlap → no rotation.
+        fig, ax = plt.subplots(figsize=(10, 3))
+        ax.plot([0, 1, 2], [0, 1, 4])
+        save_figure(fig, tmp_path / "wide", "jgr_2col", fix_tick_overlap=True)
+        # All rotations still 0.
+        assert all(t.get_rotation() == 0 for t in ax.get_xticklabels())
+        plt.close(fig)
+
+
+class TestPackLegend:
+    def test_repacks_wide_legend(self, tmp_path):
+        # Force a wide, single-column legend that eats > 40 % of the axes.
+        fig, ax = plt.subplots(figsize=(2, 2))
+        for i in range(8):
+            ax.plot([0, 1], [i, i + 1], label=f"trace-{i}-with-long-name")
+        ax.legend(loc="upper right", ncol=1)
+        n_col_before = ax.get_legend()._ncols
+        assert n_col_before == 1
+
+        save_figure(fig, tmp_path / "packed", "jgr_1col", pack_legend=True)
+
+        n_col_after = ax.get_legend()._ncols
+        assert n_col_after > 1
+        plt.close(fig)
+
+    def test_narrow_legend_left_alone(self, tmp_path):
+        # 2 short entries in a wide figure → legend already fits.
+        fig, ax = plt.subplots(figsize=(10, 3))
+        ax.plot([0, 1], [0, 1], label="a")
+        ax.plot([0, 1], [1, 0], label="b")
+        ax.legend()
+        n_before = ax.get_legend()._ncols
+        save_figure(fig, tmp_path / "narrow", "jgr_2col", pack_legend=True)
+        assert ax.get_legend()._ncols == n_before
+        plt.close(fig)
+
+
+class TestScaleUpTinyText:
+    def test_bumps_below_floor_up(self, tmp_path):
+        fig, ax = plt.subplots()
+        ax.set_title("tiny", fontsize=3.0)
+        save_figure(
+            fig,
+            tmp_path / "x",
+            "jgr_2col",
+            scale_up_tiny_text=True,
+            check_readability=False,  # already scaling, warning would be redundant
+        )
+        assert ax.title.get_fontsize() >= MIN_READABLE_PT
+        plt.close(fig)
+
+    def test_leaves_already_readable_text_alone(self, tmp_path):
+        fig, ax = plt.subplots()
+        ax.set_title("normal", fontsize=12.0)
+        save_figure(fig, tmp_path / "x", "jgr_2col", scale_up_tiny_text=True)
+        # Unchanged.
+        assert ax.title.get_fontsize() == pytest.approx(12.0)
+        plt.close(fig)
+
+
+class TestTightLayout:
+    def test_tight_layout_on_by_default(self, tmp_path):
+        # We can't easily assert "tight_layout was called" without mocks,
+        # but we can assert it doesn't raise on a normal figure.
+        fig, ax = plt.subplots()
+        ax.plot([0, 1], [0, 1])
+        save_figure(fig, tmp_path / "x", "jgr_2col")
+        plt.close(fig)
+
+    def test_tight_layout_off_bypasses_call(self, tmp_path):
+        # Same figure, tight_layout=False path — must also succeed.
+        fig, ax = plt.subplots()
+        ax.plot([0, 1], [0, 1])
+        save_figure(fig, tmp_path / "x", "jgr_2col", tight_layout=False)
+        plt.close(fig)

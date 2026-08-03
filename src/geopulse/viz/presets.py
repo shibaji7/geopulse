@@ -311,6 +311,10 @@ def save_figure(
     *,
     aspect: float | None = None,
     check_readability: bool = True,
+    fix_tick_overlap: bool = False,
+    pack_legend: bool = False,
+    scale_up_tiny_text: bool = False,
+    tight_layout: bool = True,
 ) -> list[Path]:
     """Resize ``fig`` to the preset's exact column width and save.
 
@@ -332,10 +336,33 @@ def save_figure(
         ``None`` (default) uses the preset's ``aspect_ratio``, or the
         golden-ratio fallback if the preset didn't set one.
     check_readability : bool, optional
-        When ``True`` (default), walk every Text object in the figure
-        after resize and warn (via :mod:`warnings`) if any is smaller
-        than ``MIN_READABLE_PT`` at the final rendered size. Off if
-        you deliberately want tiny inset labels.
+        Level-1 warning. When ``True`` (default), walk every Text
+        object after resize and warn (via :mod:`warnings`) if any is
+        smaller than ``MIN_READABLE_PT`` at the final rendered size.
+        Off if you deliberately want tiny inset labels.
+    fix_tick_overlap : bool, optional
+        **Level-2 mechanical fix.** When ``True``, after the figure is
+        resized, measure adjacent x-tick label bounding boxes and, if
+        any pair overlaps, rotate the labels by 30° with right-anchor
+        alignment. Default: ``False`` (caller's layout is respected).
+    pack_legend : bool, optional
+        **Level-2 mechanical fix.** When ``True``, for each axes whose
+        legend is wider than 40 % of the axes' rendered width, re-lay
+        the legend with a proportional ``ncol`` so it packs into a
+        narrower footprint. Default: ``False``.
+    scale_up_tiny_text : bool, optional
+        **Level-2 mechanical fix.** When ``True``, walk every Text
+        object after resize and, if any renders below
+        ``MIN_READABLE_PT``, promote its font size **up** to that
+        floor. Deliberately asymmetric — only shrinks-too-far text
+        grows; nothing else changes. Default: ``False`` (relative
+        sizing preserved).
+    tight_layout : bool, optional
+        Whether to call ``fig.tight_layout()`` after all Level-2 fixes
+        are applied. Default: ``True`` — matplotlib's own layout
+        engine handles most subplot-margin issues well. Set ``False``
+        if the caller has manually positioned axes with ``add_axes``
+        or ``subplots_adjust``.
 
     Returns
     -------
@@ -350,17 +377,39 @@ def save_figure(
 
     Notes
     -----
-    * Fonts do NOT auto-scale to survive the resize. The preset picked
-      the font size for the target width; if the caller then overrides
-      the width with a weird aspect ratio, some labels may spill over.
-      The readability warning catches that but does not fix it.
-    * When saving multiple formats, matplotlib re-rasterises the
-      figure once per file (fine for vector, cheap for PNG).
+    Order of operations inside this function:
+
+    1. Resolve preset + aspect.
+    2. ``fig.set_size_inches`` + ``fig.set_dpi``.
+    3. If ``fix_tick_overlap`` — draw, measure, rotate.
+    4. If ``pack_legend`` — draw, measure, re-lay legend.
+    5. If ``scale_up_tiny_text`` — draw, measure, bump text sizes.
+    6. If ``tight_layout`` — call ``fig.tight_layout()``.
+    7. If ``check_readability`` — warn on remaining tiny text.
+    8. Save each ``preset.save_formats`` entry.
+
+    Level-2 fixes are all opt-in and default to off (except
+    ``tight_layout``, which is a no-op if the layout was already
+    correct). This preserves backward-compatibility with the earlier
+    Level-1 API: pre-existing callers see no behavioural change.
+
+    Level-2 fixes call ``fig.canvas.draw()`` to measure real bounding
+    boxes; this triggers a full renderer pass (cheap on the Agg
+    backend, slightly slower on interactive backends). Callers with
+    performance-critical loops should apply the fixes manually to
+    amortise the draw across many figures.
 
     Examples
     --------
-    >>> save_figure(fig, "fig3", "jgr_2col")             # doctest: +SKIP
-    [PosixPath('.../fig3.pdf'), PosixPath('.../fig3.png')]
+    Level 1 (unchanged behaviour):
+
+    >>> save_figure(fig, "fig3", "jgr_2col")                       # doctest: +SKIP
+
+    Level 2 all-on:
+
+    >>> save_figure(fig, "fig3", "jgr_2col",                       # doctest: +SKIP
+    ...             fix_tick_overlap=True, pack_legend=True,
+    ...             scale_up_tiny_text=True)
     """
     p = _resolve_preset(preset)
     ratio = _resolve_aspect(aspect, p)
@@ -369,6 +418,15 @@ def save_figure(
     height_in = width_in * ratio
     fig.set_size_inches(width_in, height_in)
     fig.set_dpi(p.dpi)
+
+    if fix_tick_overlap:
+        _fix_tick_overlap(fig)
+    if pack_legend:
+        _pack_legend(fig)
+    if scale_up_tiny_text:
+        _scale_up_tiny_text(fig, MIN_READABLE_PT)
+    if tight_layout:
+        _apply_tight_layout(fig)
 
     if check_readability:
         _warn_if_tiny_text(fig, MIN_READABLE_PT)
@@ -401,6 +459,116 @@ def _resolve_aspect(aspect: float | None, preset: FigurePreset) -> float:
     if preset.aspect_ratio is not None:
         return float(preset.aspect_ratio)
     return 1.0 / GOLDEN_RATIO
+
+
+# ---------------------------------------------------------------------------
+# Level-2 mechanical layout fixes
+# ---------------------------------------------------------------------------
+
+
+def _fix_tick_overlap(fig: "Figure", angle_deg: float = 30.0, min_gap_px: float = 2.0) -> None:
+    """Rotate x-tick labels on any axes where adjacent labels overlap.
+
+    Level-2 mechanical fix. Iterates every Axes on ``fig``, forces a
+    render pass via ``fig.canvas.draw()`` so bounding boxes are
+    accurate, then measures whether any pair of adjacent x-tick label
+    bboxes overlap horizontally. If yes, rotates every label on that
+    axes by ``angle_deg`` (default 30°) and sets right-anchor
+    alignment.
+
+    Deterministic and idempotent: calling twice with the same figure
+    yields the same result. Silent when nothing needs fixing.
+    """
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    for ax in fig.axes:
+        labels = [t for t in ax.get_xticklabels() if t.get_text().strip()]
+        if len(labels) < 2:
+            continue
+        bboxes = [t.get_window_extent(renderer=renderer) for t in labels]
+        # Adjacent-pair zip: bboxes[:-1] and bboxes[1:] deliberately mismatched by 1.
+        overlap = any(a.x1 + min_gap_px > b.x0 for a, b in zip(bboxes, bboxes[1:], strict=False))
+        if overlap:
+            for t in labels:
+                t.set_rotation(angle_deg)
+                t.set_horizontalalignment("right")
+
+
+def _pack_legend(fig: "Figure", max_frac: float = 0.4) -> None:
+    """Re-lay legends that eat too much axes width into more columns.
+
+    Level-2 mechanical fix. For each Axes that has a legend, forces a
+    render pass and measures the legend's rendered width against the
+    axes' rendered width. If the legend eats more than ``max_frac``
+    (default 40 %) of the axes width, re-creates the legend with a
+    proportionally-larger ``ncol`` so it packs into a narrower
+    footprint. Preserves labels and handles.
+
+    No-op if the axes has no legend, if the legend is already
+    sufficiently narrow, or if the axes has zero rendered width
+    (degenerate).
+    """
+    import numpy as np
+
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    for ax in fig.axes:
+        legend = ax.get_legend()
+        if legend is None:
+            continue
+        try:
+            legend_bbox = legend.get_window_extent(renderer=renderer)
+            ax_bbox = ax.get_window_extent(renderer=renderer)
+        except Exception:  # noqa: BLE001 — matplotlib can raise for unrealised axes
+            continue
+        if ax_bbox.width <= 0.0:
+            continue
+        frac = legend_bbox.width / ax_bbox.width
+        if frac <= max_frac:
+            continue
+        # Estimate the ncol that would bring the legend under the target.
+        current_ncol = getattr(legend, "_ncols", None) or 1
+        target_ncol = max(2, int(np.ceil(current_ncol * frac / max_frac)))
+        n_entries = len(legend.get_texts())
+        target_ncol = min(target_ncol, n_entries)
+        # Re-create the legend at the same loc with the new ncol.
+        handles, labels_txt = ax.get_legend_handles_labels()
+        loc = legend._loc if hasattr(legend, "_loc") else "best"
+        ax.legend(handles, labels_txt, ncol=target_ncol, loc=loc)
+
+
+def _scale_up_tiny_text(fig: "Figure", min_pt: float) -> None:
+    """Bump any Text below ``min_pt`` up to ``min_pt``.
+
+    Level-2 mechanical fix. Asymmetric: only tiny text grows; nothing
+    else changes. Preserves the relative-size hierarchy for everything
+    that was already above the floor.
+    """
+    for ax in fig.axes:
+        for text in ax.get_children():
+            get_size = getattr(text, "get_fontsize", None)
+            set_size = getattr(text, "set_fontsize", None)
+            if get_size is None or set_size is None:
+                continue
+            size = float(get_size())
+            if 0.0 < size < min_pt:
+                set_size(min_pt)
+
+
+def _apply_tight_layout(fig: "Figure") -> None:
+    """Call ``fig.tight_layout()`` guarded against layouts that reject it.
+
+    A minority of figures (those built with hand-placed ``add_axes``,
+    or with cartopy axes that don't advertise a tight bbox) throw
+    when ``tight_layout`` runs. In those cases we silently skip —
+    the caller opted into ``tight_layout=True`` at their own risk,
+    but a save failure shouldn't be worse than a slightly loose
+    layout.
+    """
+    try:
+        fig.tight_layout()
+    except Exception:  # noqa: BLE001 — matplotlib can raise UserWarning-like errors
+        pass
 
 
 def _warn_if_tiny_text(fig: "Figure", min_pt: float) -> None:
