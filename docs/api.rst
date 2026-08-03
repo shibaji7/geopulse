@@ -67,6 +67,7 @@ Conductor networks
    geopulse.network.base
    geopulse.network.powergrid
    geopulse.network.pipeline
+   geopulse.network.helpers
 
 Circuit solvers
 ---------------
@@ -89,6 +90,7 @@ Devices
    geopulse.devices
    geopulse.devices.base
    geopulse.devices.transformer
+   geopulse.devices.blocker
 
 Uncertainty quantification
 --------------------------
@@ -111,3 +113,14 @@ I/O
    geopulse.io.hdf5
    geopulse.io.matpower
    geopulse.io.iaga2002
+
+Visualisation
+-------------
+
+.. autosummary::
+   :toctree: api/_autosummary
+   :recursive:
+
+   geopulse.viz
+   geopulse.viz.network_map
+   geopulse.viz.presets

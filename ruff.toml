@@ -73,7 +73,6 @@ ignore = [
 "src/geopulse/uq/distributions.py"      = ["D102", "ANN"]
 "src/geopulse/uq/montecarlo.py"         = ["ANN"]
 "src/geopulse/uq/sensitivity.py"        = ["ANN"]
-"src/geopulse/viz/network_map.py"       = ["ANN"]
 "src/geopulse/viz/spectra.py"           = ["ANN"]
 "src/geopulse/metrics/hotspot.py"       = ["ANN"]
 "src/geopulse/metrics/exceedance.py"    = ["ANN"]
