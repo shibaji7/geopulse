@@ -1,5 +1,7 @@
-"""Visualisation utilities: time series, network maps, spectra."""
+"""Visualisation utilities: network maps, time series, spectra."""
 
 from __future__ import annotations
 
-__all__: list[str] = []
+from geopulse.viz.network_map import plot_network_map
+
+__all__ = ["plot_network_map"]
