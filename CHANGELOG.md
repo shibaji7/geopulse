@@ -5,6 +5,57 @@ All notable changes to GeoPulse will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0a1] - 2026-07-30
+
+Opens the v0.2 alpha train. First feature drop is a coordinated set
+of four reusable library modules (PR #20 / `feature/core-additions`)
+that unblock the upcoming `paper/shi-hypotheses` paper reproduction
+and every future case study that touches network mutations, mitigation
+devices, network maps, or venue-specific figure output.
+
+### Added
+
+- `geopulse.network.helpers` — post-hoc network-topology mutation
+  helpers: `apply_resistive_blocker`, `open_line`, `add_tie`, plus a
+  spatial-field sampler `evaluate_field_at_branch_midpoints` that
+  evaluates a caller-supplied `f(x_km, y_km) → (Ex, Ey)` at each
+  branch midpoint and returns the per-branch arrays that
+  `PowerGridNetwork.compute_thevenin_voltages` accepts. All matrix
+  helpers copy their input (scenario sweeps correct-by-construction).
+- `geopulse.devices.blocker.ResistiveBlocker` — passive DeviceModel
+  that instruments a resistive DC-blocker at a transformer neutral.
+  Reports blocker voltage / peak-voltage / peak-power / dissipated-
+  energy given a neutral GIC time series. Pairs with
+  `network.helpers.apply_resistive_blocker` for the two-step
+  compose-mitigate-and-instrument workflow.
+- `geopulse.viz.network_map.plot_network_map` — matplotlib-only
+  substation-scatter + line-segment network plot. No cartopy
+  dependency (equirectangular is visually indistinguishable at ≤
+  few hundred km extents). Handles `dict[node_id, value]` or
+  per-node array, log-scale colour, axes injection for compose-into-
+  larger-figure, savepath.
+- `geopulse.viz.presets` — venue-figure preset registry (11 named
+  presets: JGR / SW / Nature / IEEE 1col & 2col, AGU poster,
+  presentation, preprint) with two-function API:
+  `apply_preset(name)` sets matplotlib rcParams before you build
+  the figure; `save_figure(fig, path, preset, ...)` resizes to the
+  exact column width and writes every venue-required format.
+  Level-1 readability warning always on; opt-in Level-2a mechanical
+  fixes (rotate ticks on overlap, pack legend on overflow, scale-up
+  tiny text, tight-layout) via new kwargs on `save_figure`.
+
+### Tests
+
+Full suite grows from 117 → 204 (+87 net across four new module test
+files). All guardrails green (ruff D/N/C901/ANN, mypy, interrogate
+≥ 85 %, pylint duplicate-code, check-no-version-drift).
+
+### Docs
+
+`docs/api.rst` gains a new Visualisation section and per-module rows
+under Networks and Devices. `ROADMAP.md` flips four rows to Done and
+refreshes the venue-preset sub-section to match the shipped registry.
+
 ## [0.1.0a3] - 2026-07-27
 
 Renames the solver from "LPM" to "NAM" (=LPm) per collaborator feedback
