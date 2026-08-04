@@ -113,6 +113,9 @@ def solve_nam(
     ConvergenceError
         If the reduced linear system is singular after removing
         ungrounded nodes.
+    ShapeMismatchError
+        If ``branch_endpoints`` or ``branch_conductances`` is inconsistent
+        with the number of branches implied by ``thevenin_voltages``.
     """
     n_nodes = network_admittance.shape[0]
     n_branches = thevenin_voltages.shape[0]

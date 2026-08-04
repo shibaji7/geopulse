@@ -169,6 +169,20 @@ itself and `CHANGELOG.md`. See the [Version-drift
 guardrail](#version-drift-guardrail-check-no-version-drift) section
 below for the full policy.
 
+**`check-docstring-drift` — docstring/signature consistency.** Fails if
+a function's numpy-style docstring makes a claim the code no longer
+backs up: a `Parameters` section that lists an argument no longer in
+the signature (or is missing one that is), or a `Raises` section that
+doesn't mention an exception the function body actually raises. Only
+checks functions whose docstring **already has** a `Parameters` or
+`Raises` section — it never demands one exist (that's `interrogate`'s
+job), so it stays quiet on the numpy-style-with-type-hints and
+`Attributes`-on-dataclasses conventions that tripped up pydoclint and
+numpydoc-validation (see [GH-17](https://github.com/shibaji7/geopulse/issues/17)
+for the evaluation). On failure it prints the file, line, and function
+name for each mismatch — update whichever side (code or docstring) is
+wrong and re-commit.
+
 **`gitlint-soft` — commit message.** Runs on `commit-msg`. Prints a
 warning if the commit title doesn't match Conventional Commits
 (`type(scope): summary`, ≤ 80 chars, one of the allowed types),
