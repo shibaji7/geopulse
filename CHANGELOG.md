@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `PowerGridNetwork` now places `dc_sub1` and `dc_sub7` on the map
+  (issue #22). Both nodes have no branch neighbours in the shipped
+  Horton EPRI21 MATPOWER file (T1 is entirely omitted; Sw.Sta 7 is
+  transformerless), so the parser's existing zero-length-branch
+  coordinate walk had nothing to inherit from and left them at
+  `NaN`. A small `_HORTON_TABLE_I_FALLBACK` map now supplies both
+  from Horton (2012) Table I. Solver-transparent — both subs are
+  correctly isolated in the admittance matrix and Horton Table VII
+  itself shows 0.00 A GIC for both under both field orientations;
+  this change only enables visualisation code to place them on
+  network maps.
+
 ### Changed
 - **Minimum numpy raised from `>=1.24` to `>=2.0`** (`pyproject.toml`,
   `environment.yml`, `environment-minimal.yml`). Fixes issue #21:

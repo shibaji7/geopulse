@@ -62,3 +62,17 @@ def test_thevenin_uniform_eastward_field():
     # For the Horton grid (~500 km east-west span) with 1 V/km field,
     # branch voltages should be < 1 kV in magnitude.
     assert np.all(np.abs(Vth) < 1_000.0)
+
+
+def test_horton_table_i_fallback_places_isolated_subs():
+    # Regression for issue #22: dc_sub1 and dc_sub7 have no branch neighbours
+    # in the shipped MATPOWER file (T1 is entirely omitted; Sw.Sta 7 is
+    # transformerless), so the parser's zero-length-branch coordinate walk
+    # cannot place them. The Horton Table I fallback fills them in from the
+    # paper's own values, purely for visualisation — no solver impact.
+    net = PowerGridNetwork.from_file(str(EPRI21))
+    by_id = {n.node_id: n for n in net.get_nodes()}
+    assert by_id["dc_sub1"].latitude_deg == 33.6135
+    assert by_id["dc_sub1"].longitude_deg == -87.37367
+    assert by_id["dc_sub7"].latitude_deg == 34.2522
+    assert by_id["dc_sub7"].longitude_deg == -82.8363

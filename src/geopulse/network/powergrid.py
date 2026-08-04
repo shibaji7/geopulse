@@ -39,6 +39,23 @@ __all__ = ["PowerGridNetwork"]
 # tightens the benchmark from ~1 % to sub-percent.
 _latlon_to_local_xy_m = latlon_to_local_xy_wgs84_m
 
+# Horton (2012) Table I substation coordinates for the two `dc_sub*` nodes
+# that the shipped MATPOWER file cannot supply via its zero-length-branch
+# inheritance (Sub 1's T1 GSU is omitted; Sw.Sta 7 is transformerless).
+# Solver-transparent — both nodes are already correctly isolated in the
+# admittance matrix so no GIC flows through them (Horton Table VII shows
+# 0.00 A for both under both field orientations); this map only enables
+# visualisation code to place them on maps.
+# Values match the coordinates the MATPOWER file already carries for the
+# associated dc_bus* nodes (33.6135, -87.37367 for dc_bus1/dc_bus2 which
+# share Sub 1's site; 34.2522, -82.8363 for dc_bus11 at Sw.Sta 7), so
+# downstream code that matches subs to buses by coord-equality treats the
+# groups as one. Both round-trip to Horton (2012) Table I at paper precision.
+_HORTON_TABLE_I_FALLBACK: dict[str, tuple[float, float]] = {
+    "dc_sub1": (33.6135, -87.37367),
+    "dc_sub7": (34.2522, -82.8363),
+}
+
 
 class PowerGridNetwork(ConductorNetwork):
     """Bulk power-grid network loaded from a MATPOWER-GMD case.
@@ -81,46 +98,57 @@ class PowerGridNetwork(ConductorNetwork):
         self._lat0_deg = float(np.mean(lats))
         self._lon0_deg = float(np.mean(lons))
 
-        # MATPOWER-GMD convention: `parent_index` in gmd_bus means AC bus
-        # number for `dc_bus*` nodes but **substation number** for `dc_sub*`
-        # nodes (Horton EPRI21 has 8 substations numbered 1..8). The file
-        # does not carry an explicit substation → lat/lon map, so we
-        # infer substation coordinates by walking zero-length transformer
-        # branches that connect each `dc_sub*` node to a `dc_bus*` node
-        # (which does have the correct lat/lon).
-        latlon_by_row: dict[int, tuple[float, float]] = {}
-        for dn in case.dc_nodes:
-            name = dn.get("name", "")
-            if name.startswith("dc_sub"):
-                # Deferred: fill from a connected dc_bus* neighbour below.
-                continue
-            parent = dn["parent_ac_bus"]
-            if parent in case.bus_latlon:
-                latlon_by_row[dn["row"]] = case.bus_latlon[parent]
-
-        # Second pass: dc_sub* nodes inherit lat/lon from a zero-length-branch
-        # neighbour that already has coordinates.
-        deferred = [dn for dn in case.dc_nodes if dn.get("name", "").startswith("dc_sub")]
-        for dn in deferred:
-            row = dn["row"]
-            for db in case.dc_branches:
-                if db.get("length_km", 0.0) != 0.0:
-                    continue
-                if db["from_row"] == row and db["to_row"] in latlon_by_row:
-                    latlon_by_row[row] = latlon_by_row[db["to_row"]]
-                    break
-                if db["to_row"] == row and db["from_row"] in latlon_by_row:
-                    latlon_by_row[row] = latlon_by_row[db["from_row"]]
-                    break
-            # dc_sub* nodes with no connected zero-length branch (Sub 1 via
-            # GIC BD capacitor, Sub 7 switching-station-only) remain without
-            # coordinates. That is fine: they contribute nothing to V_th.
-
+        latlon_by_row = self._infer_node_coords(case)
         self._xy_m: dict[int, tuple[float, float]] = {
             row: _latlon_to_local_xy_m(lat, lon, self._lat0_deg, self._lon0_deg)
             for row, (lat, lon) in latlon_by_row.items()
         }
         self._latlon_by_row = latlon_by_row
+
+    @staticmethod
+    def _infer_node_coords(case: MatpowerGMDCase) -> dict[int, tuple[float, float]]:
+        """Build the row → (lat, lon) map for every DC node.
+
+        MATPOWER-GMD convention: ``parent_index`` in ``gmd_bus`` means
+        AC bus number for ``dc_bus*`` nodes but **substation number**
+        for ``dc_sub*`` nodes (Horton EPRI21 has 8 substations numbered
+        1..8). The file does not carry an explicit substation → lat/lon
+        map, so substation coords are inherited from AC-bus neighbours
+        via ``_fill_sub_coords``. Sub 1 and Sw.Sta 7 in Horton EPRI21
+        have no branch neighbour at all and get a Table-I-derived
+        fallback — see ``_HORTON_TABLE_I_FALLBACK`` for physics context.
+        """
+        latlon_by_row: dict[int, tuple[float, float]] = {
+            dn["row"]: case.bus_latlon[dn["parent_ac_bus"]]
+            for dn in case.dc_nodes
+            if not dn.get("name", "").startswith("dc_sub")
+            and dn["parent_ac_bus"] in case.bus_latlon
+        }
+        for dn in case.dc_nodes:
+            if dn.get("name", "").startswith("dc_sub"):
+                PowerGridNetwork._fill_sub_coord(dn, case, latlon_by_row)
+        return latlon_by_row
+
+    @staticmethod
+    def _fill_sub_coord(
+        dn: dict,
+        case: MatpowerGMDCase,
+        latlon_by_row: dict[int, tuple[float, float]],
+    ) -> None:
+        """Populate ``latlon_by_row[dn["row"]]`` for one ``dc_sub*`` node."""
+        row = dn["row"]
+        for db in case.dc_branches:
+            if db.get("length_km", 0.0) != 0.0:
+                continue
+            if db["from_row"] == row and db["to_row"] in latlon_by_row:
+                latlon_by_row[row] = latlon_by_row[db["to_row"]]
+                return
+            if db["to_row"] == row and db["from_row"] in latlon_by_row:
+                latlon_by_row[row] = latlon_by_row[db["from_row"]]
+                return
+        fallback = _HORTON_TABLE_I_FALLBACK.get(dn.get("name", ""))
+        if fallback is not None:
+            latlon_by_row[row] = fallback
 
     # ------------------------------------------------------------------ ABC
 
