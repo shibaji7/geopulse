@@ -61,20 +61,13 @@ import numpy as np
 from matplotlib.patches import Circle
 
 from geopulse.geo import meridian_radius_m, prime_vertical_radius_m
+from geopulse.network.helpers import evaluate_field_at_branch_midpoints
 from geopulse.network.powergrid import PowerGridNetwork
 from geopulse.solver.nam import NAMSolver
 
 # H1b — spatial-redistribution map is drawn at this single gradient
 # value (chosen to match the reference GIC_HSR_Model figure).
 H1B_DEDX_V_PER_KM_PER_KM = 5e-3
-
-# Note: we compute per-branch midpoints manually in _sample_field_at_branches
-# rather than calling geopulse.network.helpers.evaluate_field_at_branch_midpoints
-# because that helper takes a naive mean over ALL node lats to build its
-# projection origin — and Horton EPRI21 has two substations
-# (dc_sub1, dc_sub7) with NaN coords in the MATPOWER file, which poisons
-# the mean to NaN. A NaN-safe version of the helper is filed as a
-# follow-up issue against PR #20.
 
 # ---------------------------------------------------------------------------
 # Configuration — edit these two lines to point at a different target /
@@ -101,60 +94,24 @@ def _target_index(net: PowerGridNetwork, node_id: str) -> int:
     raise ValueError(f"target node {node_id!r} not found in network")
 
 
-def _valid_mean_latlon(net: PowerGridNetwork) -> tuple[float, float]:
-    """Mean lat/lon over nodes with valid coordinates.
-
-    Filters out nodes whose lat or lon is NaN — Horton EPRI21 has two
-    such substations in the MATPOWER file, and a naive ``np.mean``
-    would poison the projection origin.
-    """
-    nodes = list(net.get_nodes())
-    valid = [n for n in nodes if np.isfinite(n.latitude_deg) and np.isfinite(n.longitude_deg)]
-    lat0 = float(np.mean([n.latitude_deg for n in valid]))
-    lon0 = float(np.mean([n.longitude_deg for n in valid]))
-    return lat0, lon0
-
-
 def _target_local_xy_km(net: PowerGridNetwork, target_idx: int) -> tuple[float, float]:
-    """Local (east km, north km) of the target in the paper's projection."""
-    lat0, lon0 = _valid_mean_latlon(net)
+    """Local (east km, north km) of the target in the library's projection.
+
+    Matches the origin convention used inside
+    :func:`geopulse.network.helpers.evaluate_field_at_branch_midpoints`
+    (mean of isfinite node coordinates) so ``x_km`` values here line up
+    with the ``x_km`` argument the library passes into ``field_fn``.
+    """
+    lats = np.array([n.latitude_deg for n in net.get_nodes()], dtype=np.float64)
+    lons = np.array([n.longitude_deg for n in net.get_nodes()], dtype=np.float64)
+    finite = np.isfinite(lats) & np.isfinite(lons)
+    lat0, lon0 = float(np.mean(lats[finite])), float(np.mean(lons[finite]))
     m_per_deg_lat = meridian_radius_m(lat0) * np.pi / 180.0
     m_per_deg_lon = prime_vertical_radius_m(lat0) * float(np.cos(np.radians(lat0))) * np.pi / 180.0
     tgt = list(net.get_nodes())[target_idx]
     x_km = (tgt.longitude_deg - lon0) * m_per_deg_lon / 1000.0
     y_km = (tgt.latitude_deg - lat0) * m_per_deg_lat / 1000.0
     return float(x_km), float(y_km)
-
-
-def _sample_field_at_branches(
-    net: PowerGridNetwork,
-    field_fn,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Per-branch (Ex, Ey) via NaN-safe local equirectangular projection.
-
-    Branches touching a NaN-coord node get (0, 0) — those are zero-
-    length (co-located with parent AC bus), so no induced voltage is
-    the right physics.
-    """
-    lat0, lon0 = _valid_mean_latlon(net)
-    m_per_deg_lat = meridian_radius_m(lat0) * np.pi / 180.0
-    m_per_deg_lon = prime_vertical_radius_m(lat0) * float(np.cos(np.radians(lat0))) * np.pi / 180.0
-
-    nodes_by_id = {n.node_id: n for n in net.get_nodes()}
-    branches = list(net.get_branches())
-    ex = np.zeros(len(branches), dtype=np.float64)
-    ey = np.zeros(len(branches), dtype=np.float64)
-    for k, br in enumerate(branches):
-        a, b = nodes_by_id[br.from_node], nodes_by_id[br.to_node]
-        lat_mid = 0.5 * (a.latitude_deg + b.latitude_deg)
-        lon_mid = 0.5 * (a.longitude_deg + b.longitude_deg)
-        if not (np.isfinite(lat_mid) and np.isfinite(lon_mid)):
-            continue  # zero-length degenerate branch → leave (0, 0)
-        x_km = (lon_mid - lon0) * m_per_deg_lon / 1000.0
-        y_km = (lat_mid - lat0) * m_per_deg_lat / 1000.0
-        val = field_fn(float(x_km), float(y_km))
-        ex[k], ey[k] = float(val[0]), float(val[1])
-    return ex, ey
 
 
 def _gic_at(node_idx: int, node_voltages_V: np.ndarray, earth_Z_diag: np.ndarray) -> float:
@@ -218,7 +175,7 @@ def _solve_with_gradient(
         ex_v_per_km = e_local_v_per_km - dEx_dx * (x_km - x_target_km)
         return (ex_v_per_km * 1e-3, 0.0)
 
-    ex, ey = _sample_field_at_branches(net, field_fn)
+    ex, ey = evaluate_field_at_branch_midpoints(net, field_fn)
     V_th = net.compute_thevenin_voltages(ex_Vm=ex, ey_Vm=ey)
     r = NAMSolver().solve(net, Y, Z, V_th)
     earth_diag = np.diag(Z)
@@ -463,7 +420,7 @@ def main() -> None:
         ex_v_per_km = e_local_v_per_km - H1B_DEDX_V_PER_KM_PER_KM * (x_km - x_target_km)
         return (ex_v_per_km * 1e-3, 0.0)
 
-    ex_arr, ey_arr = _sample_field_at_branches(net, _grad_field)
+    ex_arr, ey_arr = evaluate_field_at_branch_midpoints(net, _grad_field)
     V_grad = net.compute_thevenin_voltages(ex_Vm=ex_arr, ey_Vm=ey_arr)
     gic_gradient = _per_node_abs_gic(net, Y, Z, V_grad)
 
