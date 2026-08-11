@@ -34,7 +34,7 @@ comments pointing at the loader that would replace them.
 | 4 | `case_04_nz_gannon_2024.py` | NZ Gannon storm | 🟡 PARTIAL | Full E→GIC→thermal chain; harmonics stubbed |
 | 5 | `case_05_ireland_1d_vs_2d.py` | Irish grid model | 🟡 PARTIAL | 1-D vs 2-D CoastalCorrection2D impedance comparison |
 | 6 | `case_06_japan_low_latitude.py` | Japan low-lat GIC | 🟡 PARTIAL | Watari-scale GIC on proxy grid |
-| 7 | `case_07_us_gannon_nerc.py` | US Gannon / NERC benchmark | 🟡 PARTIAL | NERC 8 V/km design field, σ-sweep |
+| 7 | `case_07_us_gannon_nerc.py` | US Gannon / NERC benchmark | ✅ COMPLETE | FRD IAGA-2002 → 1-D Earth → NAM hindcast + σ-sweep + NERC 8 V/km anchor |
 | 8 | `case_08_brazil_itumbiara.py` | Brazil Itumbiara | 🟡 PARTIAL | Peak-GIC distribution over 200 synthetic events |
 | 9 | `case_09_taps_alaska.py` | Trans-Alaska pipeline | 🟡 PARTIAL | 1300 km DSTL under auroral E; cp_unit stubbed |
 | 10 | `case_10_sweden_pipelines.py` | Sweden pipelines | ✅ COMPLETE | DSTL π-section vs closed-form profile |
