@@ -123,4 +123,5 @@ Visualisation
 
    geopulse.viz
    geopulse.viz.network_map
+   geopulse.viz.network_schematic
    geopulse.viz.presets
