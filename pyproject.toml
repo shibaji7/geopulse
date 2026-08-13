@@ -53,6 +53,7 @@ viz = [
     "cartopy>=0.21",
     "geopandas>=0.13",
     "shapely>=2.0",
+    "schemdraw>=0.19",
 ]
 earth3d = [
     "SimPEG>=0.20",

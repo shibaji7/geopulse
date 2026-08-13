@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `geopulse.viz.network_schematic` — publication-style DC-equivalent
+  circuit schematics for GIC modelling. Three complementary renderers:
+  - `plot_transformer_dc_equivalent(config)` — reproduces
+    Mate, Barnes, Bent & Cotilla-Sanchez (2021) Fig 1 panels a/b/c
+    (`gywe-delta`, `gywe-gywe`, `gywe-gywe-auto`) as fixed-layout
+    reference figures. Data-free; ideal for a methods-section figure.
+  - `plot_substation_dc_equivalent(network, sub_id, ...)` — one
+    substation from a real parsed `PowerGridNetwork` as its
+    DC-equivalent circuit, with real transformer winding resistances,
+    real `R_gnd`, outgoing transmission-line stubs annotated with
+    induced voltage `V_e = E·L`, and live `I_GIC` on the grounding
+    leg when a solver result is supplied.
+  - `plot_network_dc_equivalent(network, ...)` — whole-network
+    schematic: every live substation as a compact `R_gnd`-to-ground
+    block laid out by geographic coords, connected by transmission-
+    line elements labelled with real `Ω` values, with live GIC per
+    substation. A view not previously available in the GIC modelling
+    literature.
+  All three share the same IEEE-symbol backend (`schemdraw`), so
+  `geopulse.viz.presets` continues to apply for column-width sizing
+  and font choices.
+- `schemdraw>=0.19` added to the `[viz]` optional-dependency group.
+  The module raises a `DataError` with a `pip install geopulse[viz]`
+  hint if imported without the dep.
+
 ### Fixed
 - `PowerGridNetwork` now places `dc_sub1` and `dc_sub7` on the map
   (issue #22). Both nodes have no branch neighbours in the shipped
