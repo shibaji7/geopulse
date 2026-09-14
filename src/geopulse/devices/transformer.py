@@ -38,13 +38,21 @@ References
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum, auto
 
 import numpy as np
 
 from geopulse.devices.base import DeviceModel, DeviceResponse
 from geopulse.exceptions import DataError
+from geopulse.uq.uncertain import Uncertain, propagate_uncertainty
 
-__all__ = ["TransformerModel", "ThermalParams"]
+__all__ = [
+    "CoreType",
+    "K_FACTOR_PLACEHOLDERS_MVAR_PER_A",
+    "ThermalParams",
+    "TransformerModel",
+    "gic_to_reactive",
+]
 
 
 @dataclass(frozen=True)
@@ -205,3 +213,183 @@ class TransformerModel(DeviceModel):
                 "inst_limit_exceeded": bool(np.max(hotspot_C) > p.hs_inst_limit_C),
             },
         )
+
+
+# ---------------------------------------------------------------------------
+# ACPF coupling — subsystem (2) of the acpf-coupling handoff spec §6.2.
+# GIC → transformer reactive-power absorption via a linear-in-|I_eff| model.
+# See docs/acpf-coupling-handoff.md (spec §6.2) for the full derivation and
+# calibration caveats.
+# ---------------------------------------------------------------------------
+
+
+class CoreType(Enum):
+    """Transformer core construction determining GIC susceptibility.
+
+    Core geometry is the strongest determinant of the reactive-power
+    absorption a transformer draws per amp of DC neutral bias. Ordered
+    from least- to most-susceptible (spec §6.2):
+
+    * ``THREE_LIMB_CORE`` — three-legged three-phase core. High
+      zero-sequence reluctance keeps GIC flux mostly out of the iron.
+      Lowest susceptibility.
+    * ``FIVE_LIMB_CORE`` — five-legged three-phase core. Outer return
+      legs provide a low-reluctance path for the zero-sequence flux;
+      moderately susceptible.
+    * ``SHELL_FORM`` — three-phase shell-form construction. High
+      susceptibility.
+    * ``SINGLE_PHASE_BANK`` — three single-phase units. No inter-phase
+      flux cancellation at all. Highest susceptibility of common designs.
+    * ``AUTOTRANSFORMER`` — series + common winding sharing a neutral.
+      The *effective* GIC current is a weighted sum of series and common
+      winding currents rather than ``I_neutral / 3``. Because the
+      weighting is genuinely subtle (spec §10 item 3), this enum value
+      is **not** in the placeholder K-factor table:
+      :func:`gic_to_reactive` requires ``k_override`` when called with
+      ``AUTOTRANSFORMER``.
+    """
+
+    THREE_LIMB_CORE = auto()
+    FIVE_LIMB_CORE = auto()
+    SHELL_FORM = auto()
+    SINGLE_PHASE_BANK = auto()
+    AUTOTRANSFORMER = auto()
+
+
+# WARNING (spec §6.2, §10 item 1):
+#
+# These are ORDER-OF-MAGNITUDE placeholders. They are ranked correctly
+# (three-limb < five-limb < shell < single-phase bank) but their absolute
+# values MUST be calibrated against the GIC literature (Kappenman;
+# Overbye & Shetye; NERC TPL-007 committee data) before any published
+# result. Use ``k_override`` on :func:`gic_to_reactive` to supply a
+# calibrated value per transformer without touching this table.
+#
+# Units: MVAr/A. Multiplied by ``|I_eff|`` (A per phase) and ``V_pu``
+# (per-unit operating voltage) to give absorbed reactive power in MVAr.
+K_FACTOR_PLACEHOLDERS_MVAR_PER_A: dict[CoreType, float] = {
+    CoreType.THREE_LIMB_CORE: 0.3,
+    CoreType.FIVE_LIMB_CORE: 0.6,
+    CoreType.SHELL_FORM: 0.8,
+    CoreType.SINGLE_PHASE_BANK: 1.0,
+    # AUTOTRANSFORMER intentionally absent — see CoreType docstring.
+}
+
+
+def _resolve_k(core_type: CoreType, k_override: Uncertain | float | None) -> Uncertain | float:
+    """Return the K to use for this transformer, raising if none is available."""
+    if k_override is not None:
+        return k_override
+    if core_type is CoreType.AUTOTRANSFORMER:
+        raise DataError(
+            "gic_to_reactive: CoreType.AUTOTRANSFORMER requires k_override — the "
+            "effective-current weighting between series and common windings is a "
+            "known-subtle calibration (spec §10 item 3) and no placeholder K is "
+            "shipped for it. Supply k_override=Uncertain(...) with a calibrated "
+            "value or a callable per-transformer estimate."
+        )
+    return K_FACTOR_PLACEHOLDERS_MVAR_PER_A[core_type]
+
+
+def _scalar_gic_to_reactive(i_gic_eff: float, k: float, v_pu: float) -> float:
+    """Deterministic kernel: ΔQ (MVAr) = K · |I_eff| · V_pu."""
+    return float(k) * float(abs(i_gic_eff)) * float(v_pu)
+
+
+def gic_to_reactive(
+    i_gic_eff: Uncertain | float,
+    core_type: CoreType,
+    v_pu: float = 1.0,
+    k_override: Uncertain | float | None = None,
+) -> Uncertain:
+    r"""Reactive-power absorption of one transformer under DC bias.
+
+    Implements the linear GIC → ΔQ model (Kappenman; Overbye & Shetye;
+    spec §6.2):
+
+    .. math::
+
+        \Delta Q \; [\mathrm{MVAr}] \; = \; K \cdot |I_{\mathrm{eff}}| \cdot V_{\mathrm{pu}}
+
+    where ``|I_eff|`` is the effective per-phase DC current in A (for a
+    three-phase transformer, ``I_neutral / 3``; autotransformers need
+    the caller-supplied series+common winding weighting — see
+    :class:`CoreType`), ``K`` is the reactive-absorption coefficient in
+    MVAr/A depending on core construction, and ``V_pu`` scales for the
+    operating voltage in per-unit.
+
+    Parameters
+    ----------
+    i_gic_eff : Uncertain or float
+        Effective per-phase DC current through the transformer, in
+        amperes. Signed; magnitude is taken internally so the result is
+        always non-negative. Uncertainty propagates through Monte Carlo
+        automatically if this argument is an :class:`Uncertain`.
+    core_type : CoreType
+        Core construction of this transformer. Determines the placeholder
+        ``K`` when ``k_override`` is not supplied.
+    v_pu : float, optional
+        Operating voltage in per-unit at the transformer's HV terminal.
+        Default: ``1.0``.
+    k_override : Uncertain or float, optional
+        Override the placeholder ``K`` from the module-level table with
+        a calibrated value (recommended for published results, required
+        for ``CoreType.AUTOTRANSFORMER``). Default: ``None`` (use the
+        placeholder).
+
+    Returns
+    -------
+    Uncertain
+        Reactive-power absorption in MVAr, always ≥ 0. If any input
+        carries uncertainty, the result carries an ensemble of samples;
+        otherwise a deterministic :class:`Uncertain`.
+
+    Raises
+    ------
+    DataError
+        If ``core_type is CoreType.AUTOTRANSFORMER`` and ``k_override``
+        is not supplied.
+
+    Notes
+    -----
+    * The linear model is standard in the GIC literature but breaks
+      down at very deep saturation (rule of thumb: |I_eff| > ~30–50 A
+      per phase, spec §10 item 4). Document this whenever reporting
+      results near or above that regime.
+    * The placeholder K-factors in
+      :data:`K_FACTOR_PLACEHOLDERS_MVAR_PER_A` are order-of-magnitude
+      only — see the module docstring warning.
+
+    Examples
+    --------
+    Deterministic single-phase bank at 25 A per phase, 1.02 pu voltage:
+
+    >>> import numpy as np
+    >>> dq = gic_to_reactive(25.0, CoreType.SINGLE_PHASE_BANK, v_pu=1.02)
+    >>> round(float(dq.nominal), 2)
+    25.5
+
+    Uncertainty in the DC current propagates:
+
+    >>> from geopulse.uq.uncertain import Uncertain
+    >>> i = Uncertain(nominal=25.0, distribution="gaussian", params={"std": 2.0})
+    >>> dq_u = gic_to_reactive(i, CoreType.THREE_LIMB_CORE)
+    >>> dq_u.n_samples > 0
+    True
+    """
+    k = _resolve_k(core_type, k_override)
+    # If neither input carries uncertainty, the deterministic path avoids
+    # Monte-Carlo overhead entirely.
+    inputs_are_deterministic = (
+        not isinstance(i_gic_eff, Uncertain) or i_gic_eff.is_deterministic
+    ) and (not isinstance(k, Uncertain) or k.is_deterministic)
+    if inputs_are_deterministic:
+        i_val = i_gic_eff.nominal if isinstance(i_gic_eff, Uncertain) else i_gic_eff
+        k_val = k.nominal if isinstance(k, Uncertain) else k
+        return Uncertain(nominal=_scalar_gic_to_reactive(i_val, k_val, v_pu))
+    return propagate_uncertainty(
+        _scalar_gic_to_reactive,
+        i_gic_eff,
+        k,
+        v_pu=v_pu,
+    )

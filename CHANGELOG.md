@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `geopulse.devices.transformer.CoreType` and
+  `gic_to_reactive(i_gic_eff, core_type, v_pu=1.0, k_override=None)` —
+  first subsystem of the AC-power-flow coupling programme
+  (`geopulse-acpf-coupling-handoff.md` §6.2). Linear GIC → reactive-
+  absorption model
+  ``ΔQ [MVAr] = K · |I_eff| · V_pu`` with a five-member core-type
+  enumeration (three-limb, five-limb, shell-form, single-phase bank,
+  autotransformer) and a module-level placeholder K-factor table
+  (`K_FACTOR_PLACEHOLDERS_MVAR_PER_A`) that is intentionally
+  order-of-magnitude only pending literature calibration. Autotransformer
+  effective-current weighting is a known-subtle calibration (spec §10
+  item 3), so `CoreType.AUTOTRANSFORMER` refuses to use a placeholder
+  and raises `DataError` if `k_override` is not supplied. Uncertainty
+  propagates automatically via `Uncertain`. Zero cost when all inputs
+  are deterministic. 13 new regression tests cover monotonicity,
+  core-type ordering, sign invariance, linearity in both `|I_eff|` and
+  `V_pu`, the `k_override` path, the autotransformer refusal, and
+  MC propagation.
+
 ### Fixed
 - `PowerGridNetwork` now places `dc_sub1` and `dc_sub7` on the map
   (issue #22). Both nodes have no branch neighbours in the shipped
