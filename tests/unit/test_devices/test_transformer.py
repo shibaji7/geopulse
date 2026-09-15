@@ -92,3 +92,118 @@ def test_thd_is_nan_and_harmonics_empty():
     resp = TransformerModel().inject_gic(t_s, np.zeros_like(t_s))
     assert np.isnan(resp.thd)
     assert resp.harmonics.size == 0
+
+
+# ---------------------------------------------------------------------------
+# ACPF coupling — GIC → reactive absorption (spec §6.2).
+# ---------------------------------------------------------------------------
+
+from geopulse.devices.transformer import (
+    K_FACTOR_PLACEHOLDERS_MVAR_PER_A,
+    CoreType,
+    gic_to_reactive,
+)
+from geopulse.uq.uncertain import Uncertain
+
+
+class TestGicToReactive:
+    def test_zero_gic_gives_zero_dq(self):
+        # Spec §8 item 3: I_GIC = 0 → ΔQ = 0 exactly.
+        for core in (
+            CoreType.THREE_LIMB_CORE,
+            CoreType.FIVE_LIMB_CORE,
+            CoreType.SHELL_FORM,
+            CoreType.SINGLE_PHASE_BANK,
+        ):
+            dq = gic_to_reactive(0.0, core)
+            assert dq.nominal == 0.0
+
+    def test_scales_linearly_with_current(self):
+        # ΔQ ∝ |I_eff| (spec §6.2 linear model).
+        dq10 = gic_to_reactive(10.0, CoreType.FIVE_LIMB_CORE).nominal
+        dq20 = gic_to_reactive(20.0, CoreType.FIVE_LIMB_CORE).nominal
+        assert dq20 == pytest.approx(2.0 * dq10)
+
+    def test_monotonic_in_current(self):
+        # Spec §8 item 4: ΔQ monotone-increasing with |I_GIC|.
+        prev = -1.0
+        for i in (0.0, 1.0, 5.0, 10.0, 50.0, 200.0):
+            v = gic_to_reactive(i, CoreType.SHELL_FORM).nominal
+            assert v > prev
+            prev = v
+
+    def test_absolute_value_of_current(self):
+        # Negative I_eff must give the same ΔQ as its positive counterpart.
+        pos = gic_to_reactive(15.3, CoreType.THREE_LIMB_CORE).nominal
+        neg = gic_to_reactive(-15.3, CoreType.THREE_LIMB_CORE).nominal
+        assert pos == neg
+
+    def test_scales_linearly_with_v_pu(self):
+        # ΔQ ∝ V_pu (spec §6.2 linear model).
+        dq_1p0 = gic_to_reactive(10.0, CoreType.FIVE_LIMB_CORE, v_pu=1.0).nominal
+        dq_1p1 = gic_to_reactive(10.0, CoreType.FIVE_LIMB_CORE, v_pu=1.1).nominal
+        assert dq_1p1 == pytest.approx(1.1 * dq_1p0)
+
+    def test_core_type_ordering(self):
+        # Spec §8 item 5: for identical GIC,
+        #   three-limb < five-limb < shell < single-phase bank.
+        i = 10.0
+        dq3 = gic_to_reactive(i, CoreType.THREE_LIMB_CORE).nominal
+        dq5 = gic_to_reactive(i, CoreType.FIVE_LIMB_CORE).nominal
+        dq_sh = gic_to_reactive(i, CoreType.SHELL_FORM).nominal
+        dq_sp = gic_to_reactive(i, CoreType.SINGLE_PHASE_BANK).nominal
+        assert dq3 < dq5 < dq_sh < dq_sp
+
+    def test_k_override_wins_over_table(self):
+        # A callable-supplied K bypasses the placeholder table.
+        default = gic_to_reactive(10.0, CoreType.THREE_LIMB_CORE).nominal
+        overridden = gic_to_reactive(
+            10.0,
+            CoreType.THREE_LIMB_CORE,
+            k_override=5.0,
+        ).nominal
+        assert overridden != default
+        assert overridden == pytest.approx(50.0)
+
+    def test_autotransformer_requires_k_override(self):
+        # Spec §10 item 3: autotransformer effective-current weighting is
+        # a known-subtle calibration; refuse to use a placeholder K.
+        with pytest.raises(DataError, match="AUTOTRANSFORMER"):
+            gic_to_reactive(10.0, CoreType.AUTOTRANSFORMER)
+
+    def test_autotransformer_accepts_k_override(self):
+        # Same call with a caller-supplied K is fine.
+        dq = gic_to_reactive(10.0, CoreType.AUTOTRANSFORMER, k_override=0.7)
+        assert dq.nominal == pytest.approx(7.0)
+
+    def test_uncertainty_propagates_from_current(self):
+        # Spec §8 item 10: Uncertain input → Uncertain output with samples.
+        i = Uncertain(nominal=25.0, distribution="gaussian", params={"std": 2.0})
+        dq = gic_to_reactive(i, CoreType.THREE_LIMB_CORE)
+        assert dq.n_samples > 0
+        assert float(dq.std) > 0.0
+
+    def test_uncertainty_propagates_from_k_override(self):
+        # Uncertain K also propagates through.
+        k = Uncertain(nominal=0.6, distribution="gaussian", params={"std": 0.05})
+        dq = gic_to_reactive(10.0, CoreType.FIVE_LIMB_CORE, k_override=k)
+        assert dq.n_samples > 0
+        assert float(dq.std) > 0.0
+
+    def test_deterministic_inputs_stay_deterministic(self):
+        # No unnecessary MC sampling when everything is deterministic.
+        dq = gic_to_reactive(10.0, CoreType.FIVE_LIMB_CORE)
+        assert dq.is_deterministic
+        assert dq.n_samples == 0
+
+    def test_placeholder_table_ordering_matches_susceptibility(self):
+        # The module-level table must itself encode the correct ranking.
+        k3 = K_FACTOR_PLACEHOLDERS_MVAR_PER_A[CoreType.THREE_LIMB_CORE]
+        k5 = K_FACTOR_PLACEHOLDERS_MVAR_PER_A[CoreType.FIVE_LIMB_CORE]
+        k_sh = K_FACTOR_PLACEHOLDERS_MVAR_PER_A[CoreType.SHELL_FORM]
+        k_sp = K_FACTOR_PLACEHOLDERS_MVAR_PER_A[CoreType.SINGLE_PHASE_BANK]
+        assert k3 < k5 < k_sh < k_sp
+
+    def test_placeholder_table_omits_autotransformer(self):
+        # AUTOTRANSFORMER is intentionally not in the table (see enum docstring).
+        assert CoreType.AUTOTRANSFORMER not in K_FACTOR_PLACEHOLDERS_MVAR_PER_A
