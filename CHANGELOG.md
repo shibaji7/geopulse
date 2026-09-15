@@ -47,6 +47,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   core-type ordering, sign invariance, linearity in both `|I_eff|` and
   `V_pu`, the `k_override` path, the autotransformer refusal, and
   MC propagation.
+- `geopulse.network.loads.TripCapableLoad` (and `LoadState` enum) —
+  fourth subsystem of the AC-power-flow coupling programme
+  (`geopulse-acpf-coupling-handoff.md` §6.4). A voltage- and
+  harmonic-sensitive load primitive with ZIP decomposition (constant
+  power / constant current / constant impedance), an
+  undervoltage-plus-time-delay trip, an independent THD-plus-delay
+  trip, and an explicit `TRIPPED → RECONNECTING → CONNECTED` state
+  machine so that uncontrolled mass reconnection can be modelled as a
+  first-class hazard rather than an automatic side effect. Includes
+  `current_magnitude_pu(v_pu)` to verify the destabilising property of
+  constant-P load (I ∝ 1/V) vs constant-Z (I ∝ V). Contains
+  **mechanism only** — application-specific trip thresholds
+  (data-centre, hospital, aluminium smelter, etc.) belong in a
+  downstream study repository. 23 new regression tests cover ZIP
+  arithmetic, trip-threshold-plus-delay logic, transient dips that
+  recover before the delay expires, harmonic trips, sustained-voltage
+  reconnection, no-auto-reconnect configuration, immediate re-trip
+  after reconnect, and every input-validation path.
 
 ### Fixed
 - `PowerGridNetwork` now places `dc_sub1` and `dc_sub7` on the map
