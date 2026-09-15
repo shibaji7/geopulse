@@ -64,6 +64,9 @@ service = [
     "fastapi>=0.100",
     "uvicorn>=0.23",
 ]
+acpf = [
+    "pandapower>=3.0",
+]
 dev = [
     "pytest>=7.4",
     "pytest-cov>=4.1",
@@ -93,7 +96,7 @@ docs = [
     "myst-parser>=2.0",
 ]
 all = [
-    "geopulse[data,viz,earth3d,spice,service,dev]",
+    "geopulse[data,viz,earth3d,spice,service,acpf,dev]",
 ]
 
 [project.urls]

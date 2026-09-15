@@ -81,6 +81,17 @@ Circuit solvers
    geopulse.solver.base
    geopulse.solver.nam
 
+AC power flow (optional extra ``[acpf]``)
+-----------------------------------------
+
+.. autosummary::
+   :toctree: api/_autosummary
+   :recursive:
+
+   geopulse.acpf
+   geopulse.acpf.base
+   geopulse.acpf.pandapower_backend
+
 Devices
 -------
 
