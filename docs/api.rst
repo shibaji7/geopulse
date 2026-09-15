@@ -68,6 +68,7 @@ Conductor networks
    geopulse.network.powergrid
    geopulse.network.pipeline
    geopulse.network.helpers
+   geopulse.network.loads
 
 Circuit solvers
 ---------------
