@@ -8,6 +8,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `geopulse.acpf.coupling.solve_coupled(...)` — fifth and final
+  subsystem of the AC-power-flow coupling programme (spec §6.1),
+  closing the loop from GIC → grid impact. Consumes per-transformer
+  neutral currents (from `NAMSolver`), applies
+  `gic_to_reactive` to produce a per-bus ΔQ map, runs the
+  caller-supplied `ACPFBackend` to solve the AC network, aggregates
+  `saturation_harmonics` into a per-bus RSS-THD, and evaluates every
+  caller-supplied `TripCapableLoad`. Returns a `CoupledResult`
+  carrying the AC solution, per-bus ΔQ / harmonics / THD, load
+  states, and unserved-MW aggregate.
+  - `mode="single_pass"` (default) — one flow of information, no
+    feedback.
+  - `mode="iterated"` — repeat with tripped-load Q compensated via a
+    negative reactive injection, until bus V converges within
+    `v_tol`, `max_iter` is reached, or the tripped-load set repeats
+    (limit cycle). Limit-cycle termination is reported explicitly
+    via `CoupledResult.limit_cycle=True` and a metadata note
+    (spec §6.1 makes the oscillating solution a first-class
+    physical result, not a solver failure).
+  - Documents two spec-called-out approximations in every result's
+    metadata: the injection-percentage-as-terminal-voltage-THD
+    simplification (spec §6.3, §10 item 2) and the P-cancellation
+    limitation of iterated mode (the pandapower net holds tripped
+    loads' P constant; only their Q is compensated).
+  - `TransformerContribution` frozen dataclass carries every
+    transformer's coupling-loop inputs (bus, neutral current, core
+    type, K override for autotransformers).
+  - `CoupledResult` frozen dataclass carries every output including
+    the `ACPFResult`, per-bus ΔQ / harmonics / THD maps, load
+    states, unserved MW, iteration count, and the limit-cycle flag.
+  - 16 new regression tests covering zero-GIC base-case reproduction
+    (spec §8 item 3), ΔQ / THD growth with GIC, multiple
+    transformers at the same bus summing correctly, duplicate-
+    transformer-id rejection, autotransformer-silently-skipped-from-
+    harmonics-sum (spec §10 item 3), load evaluation under normal
+    and collapse conditions, iterated-mode convergence and P-
+    cancellation caveat, unknown-mode rejection, and metadata
+    plumbing. Full suite grows to 302 passed / 2 skipped.
+
 - `geopulse.acpf` — first subsystem of the AC-power-flow coupling
   programme (spec §5). New abstract base class `ACPFBackend` (with
   `build` / `inject_reactive` / `solve` / `continuation`) plus small

@@ -90,6 +90,7 @@ AC power flow (optional extra ``[acpf]``)
 
    geopulse.acpf
    geopulse.acpf.base
+   geopulse.acpf.coupling
    geopulse.acpf.pandapower_backend
 
 Devices
