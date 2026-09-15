@@ -123,7 +123,7 @@ pipeline = "geopulse.network.pipeline:PipelineNetwork"
 where = ["src"]
 
 [tool.setuptools.package-data]
-geopulse = ["py.typed"]
+geopulse = ["py.typed", "devices/data/*.yaml"]
 
 [tool.setuptools.dynamic]
 # Single source of truth for the version. Bumping src/geopulse/_version.py

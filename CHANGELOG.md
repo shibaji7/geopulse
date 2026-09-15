@@ -8,6 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `geopulse.devices.transformer.saturation_harmonics(i_gic_eff,
+  core_type, model="empirical", max_order=5)` — third subsystem of the
+  AC-power-flow coupling programme (spec §6.3). GIC-driven half-cycle
+  saturation → harmonic-current injection at the transformer terminal,
+  returned as `%` of fundamental for orders 1..`max_order` (fundamental
+  is always element 0 and equals 100.0). Empirical piecewise-linear
+  lookup on core-type-specific breakpoint tables shipped in
+  `src/geopulse/devices/data/harmonic_injection.yaml` — edit that
+  file to recalibrate without a code change. Values are placeholders
+  with the qualitative structure right (even harmonics dominate odd,
+  same core-type ordering as the K-factors) but absolute magnitudes
+  must be calibrated against the GIC literature before publication
+  (spec §10 item 2). `CoreType.AUTOTRANSFORMER` is deliberately absent
+  from the empirical table (spec §10 item 3) and raises `DataError`.
+  `model="analytical"` is a stub for the future B-H flux-integration
+  work package and raises `NotImplementedYetError`. 14 new regression
+  tests cover fundamental-always-100, even-dominate-odd, monotonic
+  growth with `|I_eff|`, core-type ordering, sign invariance, refused
+  autotransformer, stub-analytical-model, argument validation,
+  `max_order` shape and padding-with-zero for orders beyond the table,
+  and saturating extrapolation beyond the top breakpoint.
 - `geopulse.devices.transformer.CoreType` and
   `gic_to_reactive(i_gic_eff, core_type, v_pu=1.0, k_override=None)` —
   first subsystem of the AC-power-flow coupling programme

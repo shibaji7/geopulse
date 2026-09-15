@@ -39,11 +39,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, auto
+from functools import lru_cache
+from importlib import resources
+from typing import Literal
 
 import numpy as np
+import yaml  # type: ignore[import-untyped]
 
 from geopulse.devices.base import DeviceModel, DeviceResponse
-from geopulse.exceptions import DataError
+from geopulse.exceptions import DataError, NotImplementedYetError
 from geopulse.uq.uncertain import Uncertain, propagate_uncertainty
 
 __all__ = [
@@ -52,6 +56,7 @@ __all__ = [
     "ThermalParams",
     "TransformerModel",
     "gic_to_reactive",
+    "saturation_harmonics",
 ]
 
 
@@ -393,3 +398,176 @@ def gic_to_reactive(
         k,
         v_pu=v_pu,
     )
+
+
+# ---------------------------------------------------------------------------
+# ACPF coupling — subsystem (3) of the handoff spec §6.3.
+# GIC → harmonic-current injection at the transformer terminal.
+# ---------------------------------------------------------------------------
+
+
+# Map from CoreType members to the corresponding key in the YAML lookup
+# table. AUTOTRANSFORMER is deliberately absent (spec §10 item 3) so a
+# call with that core type falls back to the analytical hook.
+_HARMONIC_TABLE_KEYS: dict[CoreType, str] = {
+    CoreType.THREE_LIMB_CORE: "three_limb_core",
+    CoreType.FIVE_LIMB_CORE: "five_limb_core",
+    CoreType.SHELL_FORM: "shell_form",
+    CoreType.SINGLE_PHASE_BANK: "single_phase_bank",
+}
+
+
+@lru_cache(maxsize=1)
+def _load_harmonic_injection_table() -> dict[str, dict[str, list[float]]]:
+    """Read the placeholder harmonic-injection table shipped with the package.
+
+    Cached — the YAML is parsed at most once per process. Returns the
+    raw dict so tests can inspect it directly.
+    """
+    with (
+        resources.files("geopulse.devices.data")
+        .joinpath("harmonic_injection.yaml")
+        .open("r", encoding="utf-8") as f
+    ):
+        data = yaml.safe_load(f)
+    if not isinstance(data, dict):
+        raise DataError(
+            "harmonic_injection.yaml did not parse to a mapping — the shipped data file is corrupt"
+        )
+    return data
+
+
+def _scalar_saturation_harmonics(
+    i_gic_eff: float,
+    core_type_key: str,
+    max_order: int,
+) -> np.ndarray:
+    """Deterministic kernel: piecewise-linear lookup + fundamental = 100 %."""
+    table = _load_harmonic_injection_table()
+    row = table[core_type_key]
+    breakpoints = np.asarray(row["breakpoints_A"], dtype=np.float64)
+    out = np.zeros(max_order, dtype=np.float64)
+    out[0] = 100.0  # fundamental is 100 % of itself by definition
+    i_mag = abs(float(i_gic_eff))
+    for order in range(2, max_order + 1):
+        key = f"order_{order}_pct"
+        if key not in row:
+            # Table does not carry this order — the empirical model can
+            # only claim what the calibration covers. Leave 0 rather than
+            # extrapolating unknown physics.
+            continue
+        curve = np.asarray(row[key], dtype=np.float64)
+        # np.interp clamps outside the table — a saturating extrapolation
+        # is the physically-defensible behaviour at very high |I_eff|
+        # where the linear-in-A curve fit no longer holds anyway.
+        out[order - 1] = float(np.interp(i_mag, breakpoints, curve))
+    return out
+
+
+def saturation_harmonics(
+    i_gic_eff: Uncertain | float,
+    core_type: CoreType,
+    model: Literal["empirical", "analytical"] = "empirical",
+    max_order: int = 5,
+) -> np.ndarray:
+    r"""Harmonic-current injection driven by half-cycle transformer saturation.
+
+    Returns an array of length ``max_order`` whose *i*-th entry is the
+    RMS amplitude of harmonic order ``i + 1`` as a percentage of the
+    fundamental. Element 0 is the fundamental (always 100.0 by
+    convention); elements 1..max_order-1 are the 2nd..max_order-th
+    harmonics.
+
+    The empirical model looks up a piecewise-linear curve shipped with
+    the package (``geopulse/devices/data/harmonic_injection.yaml``);
+    replace or edit that file to re-calibrate without touching code.
+
+    Parameters
+    ----------
+    i_gic_eff : Uncertain or float
+        Effective per-phase DC current through the transformer, in
+        amperes. Sign is ignored; only the magnitude enters the
+        saturation depth. Uncertainty is propagated automatically if
+        this is an :class:`Uncertain`.
+    core_type : CoreType
+        Core construction. ``CoreType.AUTOTRANSFORMER`` is not
+        supported by the empirical table (spec §10 item 3); it routes
+        into the analytical hook, which is currently a stub.
+    model : {"empirical", "analytical"}, optional
+        Which model to use. ``"empirical"`` (default) is the piecewise-
+        linear table lookup. ``"analytical"`` is a hook for a future
+        B-H saturation integration; it raises
+        :class:`~geopulse.exceptions.NotImplementedYetError` today,
+        per the existing repo convention for deferred features.
+    max_order : int, optional
+        Highest harmonic order to return. Must satisfy
+        ``1 <= max_order <= 40``. Default: ``5``.
+
+    Returns
+    -------
+    numpy.ndarray
+        Shape ``(max_order,)``, dtype float64. Percent of fundamental
+        for orders 1..max_order. Element 0 is exactly 100.0.
+
+    Raises
+    ------
+    DataError
+        If ``max_order`` is out of range, or the core type has no
+        empirical table entry, or ``model`` is not one of the
+        supported strings.
+    NotImplementedYetError
+        If ``model="analytical"`` — the analytical B-H integration is
+        a future work package.
+
+    Notes
+    -----
+    Values in the placeholder table are order-of-magnitude only. The
+    qualitative structure is right — even harmonics dominate over odd
+    at the same saturation depth (the asymmetric-saturation signature
+    unique to DC-biased transformers), and susceptibility rises with
+    core-type index in the same order as the reactive-absorption
+    K-factors (spec §6.2). Absolute magnitudes must be calibrated
+    against the GIC literature before any published result.
+
+    When ``i_gic_eff`` is an :class:`Uncertain`, the returned array is
+    the *nominal* result and callers who want uncertainty on the
+    harmonics should use :func:`~geopulse.uq.propagate_uncertainty`
+    directly.
+
+    Examples
+    --------
+    Empirical lookup at 10 A on a shell-form transformer:
+
+    >>> h = saturation_harmonics(10.0, CoreType.SHELL_FORM)
+    >>> h.shape
+    (5,)
+    >>> float(h[0])
+    100.0
+    >>> bool(h[1] > h[2])   # even harmonics dominate odd
+    True
+
+    Higher current, deeper saturation:
+
+    >>> h_deep = saturation_harmonics(30.0, CoreType.SHELL_FORM)
+    >>> bool(h_deep[1] > h[1])   # 2nd-harmonic content grows
+    True
+    """
+    if not 1 <= max_order <= 40:
+        raise DataError(f"max_order must be in [1, 40], got {max_order}")
+    if model not in ("empirical", "analytical"):
+        raise DataError(f"model must be 'empirical' or 'analytical', got {model!r}")
+    if model == "analytical":
+        raise NotImplementedYetError(
+            "saturation_harmonics(model='analytical')",
+            "acpf-harmonics-analytical",
+        )
+    if core_type not in _HARMONIC_TABLE_KEYS:
+        raise DataError(
+            f"saturation_harmonics: no empirical table entry for {core_type.name}. "
+            "AUTOTRANSFORMER effective-current weighting is a known-subtle "
+            "calibration issue (spec §10 item 3) — supply a table entry via "
+            "the analytical hook once it lands."
+        )
+    key = _HARMONIC_TABLE_KEYS[core_type]
+    i_val = float(i_gic_eff.nominal if isinstance(i_gic_eff, Uncertain) else i_gic_eff)
+    return _scalar_saturation_harmonics(i_val, key, max_order)

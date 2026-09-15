@@ -207,3 +207,115 @@ class TestGicToReactive:
     def test_placeholder_table_omits_autotransformer(self):
         # AUTOTRANSFORMER is intentionally not in the table (see enum docstring).
         assert CoreType.AUTOTRANSFORMER not in K_FACTOR_PLACEHOLDERS_MVAR_PER_A
+
+
+# ---------------------------------------------------------------------------
+# ACPF coupling — GIC-driven saturation harmonics (spec §6.3).
+# ---------------------------------------------------------------------------
+
+from geopulse.devices.transformer import saturation_harmonics
+from geopulse.exceptions import NotImplementedYetError
+
+
+class TestSaturationHarmonics:
+    def test_zero_gic_gives_only_fundamental(self):
+        # No DC bias → no saturation → only fundamental, everything else 0.
+        h = saturation_harmonics(0.0, CoreType.SHELL_FORM)
+        assert h.shape == (5,)
+        assert h[0] == 100.0
+        assert np.all(h[1:] == 0.0)
+
+    def test_fundamental_is_always_100(self):
+        for i in (0.0, 5.0, 20.0, 100.0):
+            for core in (
+                CoreType.THREE_LIMB_CORE,
+                CoreType.FIVE_LIMB_CORE,
+                CoreType.SHELL_FORM,
+                CoreType.SINGLE_PHASE_BANK,
+            ):
+                assert saturation_harmonics(i, core)[0] == 100.0
+
+    def test_even_harmonics_dominate_odd(self):
+        # Spec §6.3: asymmetric saturation → 2nd > 3rd, 4th > 5th at
+        # equal saturation depth. GIC signature.
+        h = saturation_harmonics(20.0, CoreType.SHELL_FORM)
+        assert h[1] > h[2]  # 2nd > 3rd
+        assert h[3] > h[4]  # 4th > 5th
+
+    def test_grows_with_gic(self):
+        # Spec §6.3: injection grows with saturation depth. Monotone.
+        prev = -1.0
+        for i in (0.0, 5.0, 10.0, 20.0, 50.0):
+            h2 = saturation_harmonics(i, CoreType.SHELL_FORM)[1]
+            assert h2 >= prev
+            prev = h2
+
+    def test_core_type_ordering_at_same_gic(self):
+        # Spec §6.3: susceptibility rises with core-type index in the
+        # same order as the K-factors:
+        #   three-limb < five-limb < shell-form < single-phase bank.
+        h3 = saturation_harmonics(10.0, CoreType.THREE_LIMB_CORE)[1]
+        h5 = saturation_harmonics(10.0, CoreType.FIVE_LIMB_CORE)[1]
+        h_sh = saturation_harmonics(10.0, CoreType.SHELL_FORM)[1]
+        h_sp = saturation_harmonics(10.0, CoreType.SINGLE_PHASE_BANK)[1]
+        assert h3 < h5 < h_sh < h_sp
+
+    def test_sign_invariance(self):
+        # Only |I_eff| enters saturation depth.
+        assert np.allclose(
+            saturation_harmonics(15.0, CoreType.FIVE_LIMB_CORE),
+            saturation_harmonics(-15.0, CoreType.FIVE_LIMB_CORE),
+        )
+
+    def test_autotransformer_refused_by_empirical(self):
+        # Spec §10 item 3: AUTOTRANSFORMER effective-current weighting
+        # is not covered by the placeholder table.
+        with pytest.raises(DataError, match="AUTOTRANSFORMER"):
+            saturation_harmonics(10.0, CoreType.AUTOTRANSFORMER)
+
+    def test_analytical_model_is_a_stub(self):
+        # Spec §6.3: analytical B-H integration is a work-package stub.
+        with pytest.raises(NotImplementedYetError, match="acpf-harmonics-analytical"):
+            saturation_harmonics(10.0, CoreType.SHELL_FORM, model="analytical")
+
+    def test_rejects_unknown_model(self):
+        with pytest.raises(DataError, match="model must be"):
+            saturation_harmonics(10.0, CoreType.SHELL_FORM, model="magic")  # type: ignore[arg-type]
+
+    def test_max_order_bounds(self):
+        with pytest.raises(DataError, match="max_order"):
+            saturation_harmonics(10.0, CoreType.SHELL_FORM, max_order=0)
+        with pytest.raises(DataError, match="max_order"):
+            saturation_harmonics(10.0, CoreType.SHELL_FORM, max_order=99)
+
+    def test_max_order_shape(self):
+        # Any max_order in [1, 40] gives that many elements.
+        for m in (1, 3, 5, 10):
+            h = saturation_harmonics(10.0, CoreType.SHELL_FORM, max_order=m)
+            assert h.shape == (m,)
+            assert h[0] == 100.0
+
+    def test_higher_orders_pad_with_zero(self):
+        # Orders beyond what the table calibrates are returned as 0 —
+        # the empirical model only claims what it covers.
+        h = saturation_harmonics(20.0, CoreType.SHELL_FORM, max_order=10)
+        assert h.shape == (10,)
+        # orders 1..5 populated; orders 6..10 zero (table only goes to 5).
+        assert np.all(h[5:] == 0.0)
+        assert h[1] > 0.0
+
+    def test_saturates_beyond_top_breakpoint(self):
+        # np.interp clamps: 100 A is beyond the 50 A top breakpoint, so
+        # returns exactly the top-breakpoint value.
+        h_top = saturation_harmonics(50.0, CoreType.SHELL_FORM)
+        h_over = saturation_harmonics(100.0, CoreType.SHELL_FORM)
+        assert np.allclose(h_top, h_over)
+
+    def test_accepts_uncertain_and_uses_nominal(self):
+        # An Uncertain input evaluates at its nominal — callers who want
+        # uncertainty on the harmonics themselves should use
+        # propagate_uncertainty explicitly.
+        u = Uncertain(nominal=10.0, distribution="gaussian", params={"std": 2.0})
+        h = saturation_harmonics(u, CoreType.FIVE_LIMB_CORE)
+        h_det = saturation_harmonics(10.0, CoreType.FIVE_LIMB_CORE)
+        assert np.allclose(h, h_det)
