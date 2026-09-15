@@ -8,6 +8,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `geopulse.acpf` — first subsystem of the AC-power-flow coupling
+  programme (spec §5). New abstract base class `ACPFBackend` (with
+  `build` / `inject_reactive` / `solve` / `continuation`) plus small
+  frozen result dataclasses `ACPFResult`, `LoadDirection`, `PVCurve`.
+  Concrete `PandapowerBackend` implementation:
+  - Accepts a MATPOWER `.m` path (via `pandapower.converter.from_mpc`)
+    or an existing `pandapower.net` (deep-copied so caller state is
+    never mutated).
+  - `inject_reactive(delta_q)` adds one zero-P / non-zero-Q load per
+    bus for each `ΔQ` entry, with a well-known name so successive
+    calls replace the previous injection instead of accumulating.
+  - `solve()` returns a non-converged `ACPFResult` rather than raising
+    when Newton-Raphson diverges — spec §7 makes voltage collapse a
+    first-class physical result.
+  - `continuation()` is stubbed with `NotImplementedYetError` under
+    the `acpf-continuation-pf` work-package tag; the ABC still
+    requires it so the coupling loop (subsystem 5) can call it once
+    implemented.
+  - `pandapower>=3.0` sits behind a new `[acpf]` optional-dependency
+    extra. `import geopulse` continues to work without pandapower;
+    `PandapowerBackend()` raises `DataError` with a
+    `pip install geopulse[acpf]` install hint at instantiation time
+    if the dep is missing.
+  - `[all]` now includes `[acpf]`. Full ACPF path exercised by 25
+    new tests: ABC abstract-instantiation refusal, dataclass frozen
+    invariants, missing-dep behaviour, build from both a pandapower
+    net and a MATPOWER path, deep-copy semantics, zero-ΔQ base-case
+    reproduction, monotone V drop with ΔQ, idempotent replacement,
+    collapse-not-crash on unphysical injection, unknown-bus
+    rejection, and the continuation stub. `pytest.importorskip` on
+    `pandapower` at the top of the backend test file so a lean
+    install still runs the base-class tests cleanly.
+
 - `geopulse.devices.transformer.saturation_harmonics(i_gic_eff,
   core_type, model="empirical", max_order=5)` — third subsystem of the
   AC-power-flow coupling programme (spec §6.3). GIC-driven half-cycle
