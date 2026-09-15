@@ -101,15 +101,23 @@ class PandapowerBackend(ACPFBackend):
             If ``ac_case`` is neither a valid MATPOWER path nor a
             pandapower-net-like object.
         """
-        pp = _require_pandapower()
+        _require_pandapower()
         if isinstance(ac_case, (str, Path)):
             path = str(ac_case)
             try:
-                self._net = pp.converter.from_mpc(path)
-            except Exception as exc:  # pragma: no cover - passthrough of pp errors
+                from pandapower.converter.matpower import from_mpc
+            except ImportError as exc:  # pragma: no cover - pp ships this
+                raise DataError(
+                    "pandapower.converter.matpower.from_mpc is unavailable — "
+                    "the installed pandapower build appears to be missing its "
+                    "MATPOWER converter."
+                ) from exc
+            try:
+                self._net = from_mpc(path)
+            except Exception as exc:
                 raise DataError(
                     f"Could not read {path!r} as a MATPOWER case via "
-                    f"pandapower.converter.from_mpc: {exc}"
+                    f"pandapower.converter.matpower.from_mpc: {exc}"
                 ) from exc
         elif hasattr(ac_case, "bus") and hasattr(ac_case, "line"):
             # pandapower-net-shaped: deep-copy so we never mutate caller state.

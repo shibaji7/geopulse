@@ -92,6 +92,40 @@ class TestBuild:
         with pytest.raises(DataError, match="MATPOWER .m file path or a pandapower net"):
             b.build(network=None, ac_case=42)
 
+    def test_from_matpower_path_delegates_to_pp_converter(self, monkeypatch):
+        # The MATPOWER-path branch of build() delegates to
+        # pandapower.converter.matpower.from_mpc. Monkeypatch that
+        # module-level import site so we don't need a real .m file
+        # loadable by pandapower's converter (which has its own
+        # per-version quirks).
+        sentinel_net = pp.create_empty_network()
+        pp.create_bus(sentinel_net, vn_kv=138.0, name="sentinel")
+
+        import pandapower.converter.matpower as mpc_mod
+
+        def fake_from_mpc(path):
+            assert path == "some/path.m"
+            return sentinel_net
+
+        monkeypatch.setattr(mpc_mod, "from_mpc", fake_from_mpc)
+        b = PandapowerBackend()
+        b.build(network=None, ac_case="some/path.m")
+        assert b.net is not None
+        assert "sentinel" in list(b.net.bus["name"])
+
+    def test_matpower_path_wraps_converter_exception(self, monkeypatch):
+        # A malformed / unreadable file raises DataError with a helpful
+        # message rather than passing pandapower's raw exception through.
+        import pandapower.converter.matpower as mpc_mod
+
+        def boom(path):
+            raise ValueError("mocked parse error")
+
+        monkeypatch.setattr(mpc_mod, "from_mpc", boom)
+        b = PandapowerBackend()
+        with pytest.raises(DataError, match="MATPOWER case"):
+            b.build(network=None, ac_case="broken.m")
+
 
 # ---------------------------------------------------------------------------
 # Solve
