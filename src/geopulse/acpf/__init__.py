@@ -16,5 +16,14 @@ backend module for the exact error path.
 from __future__ import annotations
 
 from geopulse.acpf.base import ACPFBackend, ACPFResult, LoadDirection, PVCurve
+from geopulse.acpf.coupling import CoupledResult, TransformerContribution, solve_coupled
 
-__all__ = ["ACPFBackend", "ACPFResult", "LoadDirection", "PVCurve"]
+__all__ = [
+    "ACPFBackend",
+    "ACPFResult",
+    "CoupledResult",
+    "LoadDirection",
+    "PVCurve",
+    "TransformerContribution",
+    "solve_coupled",
+]
